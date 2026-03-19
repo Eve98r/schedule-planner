@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#fdd835"/>
+      <stop offset="100%" stop-color="#ffee58"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#g)">
+    <!-- Left vertical bar -->
+    <rect x="38" y="5" width="11" height="90" rx="2"/>
+    <!-- Left D/C curve -->
+    <path d="M42,18 H30 C8,18 8,82 30,82 H42 V72 H30 C22,72 22,28 30,28 H42 V18Z"/>
+    <!-- Top horizontal bar -->
+    <rect x="38" y="25" width="52" height="11" rx="2"/>
+    <!-- Middle horizontal bar -->
+    <rect x="38" y="45" width="42" height="11" rx="2"/>
+    <!-- Bottom horizontal bar -->
+    <rect x="38" y="65" width="52" height="11" rx="2"/>
+    <!-- Right vertical bar -->
+    <rect x="75" y="5" width="11" height="60" rx="2"/>
+    <!-- Top right cap -->
+    <rect x="92" y="5" width="14" height="11" rx="5"/>
+    <!-- Middle right cap -->
+    <rect x="82" y="45" width="14" height="11" rx="5"/>
+    <!-- Bottom right small square -->
+    <rect x="92" y="78" width="12" height="12" rx="4"/>
+  </g>
+</svg>

@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Users/muste/AppData/Roaming/**)",
+      "Read(//c/Users/muste/AppData/Local/**)",
+      "Read(//c//**)",
+      "Bash(cmd.exe //c \"where node\")",
+      "Bash(cmd.exe //c \"where npm\")",
+      "Bash(curl -L -o /tmp/node-installer.msi \"https://nodejs.org/dist/v22.14.0/node-v22.14.0-x64.msi\")",
+      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
+      "Bash(npm --version)",
+      "Bash(cp -r temp-scaffold/* temp-scaffold/.gitignore .)",
+      "Bash(rm -rf temp-scaffold)",
+      "Bash(npm install:*)",
+      "Bash(rm -f src/App.css)",
+      "Bash(rm -rf src/assets)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(npm list:*)",
+      "Bash(curl -s -X POST \"https://rkvdxezmshnzxgulwtwj.supabase.co/rest/v1/rpc\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmR4ZXptc2huenhndWx3dHdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzUxOTMsImV4cCI6MjA4OTQxMTE5M30.DOlUwNlf0fXmJSni1AgYypCa2ljR3bMRRrnLcIm3zXo\" -H \"Content-Type: application/json\")",
+      "Bash(curl -s -X POST \"https://rkvdxezmshnzxgulwtwj.supabase.co/auth/v1/signup\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmR4ZXptc2huenhndWx3dHdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzUxOTMsImV4cCI6MjA4OTQxMTE5M30.DOlUwNlf0fXmJSni1AgYypCa2ljR3bMRRrnLcIm3zXo\" -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"evelyn.r@hgrs.us\"\",\"\"password\"\":\"\"hhh2341\"\",\"\"data\"\":{\"\"full_name\"\":\"\"evelyn ro\"\"}}')",
+      "Bash(curl -s -X POST \"https://rkvdxezmshnzxgulwtwj.supabase.co/auth/v1/token?grant_type=password\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrdmR4ZXptc2huenhndWx3dHdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzUxOTMsImV4cCI6MjA4OTQxMTE5M30.DOlUwNlf0fXmJSni1AgYypCa2ljR3bMRRrnLcIm3zXo\" -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"evelyn.r@hgrs.us\"\",\"\"password\"\":\"\"hhh2341\"\"}')",
+      "Bash(TOKEN=\"eyJhbGciOiJFUzI1NiIsImtpZCI6IjRiNTg2OTM2LTc0ZTYtNDYzNi05NjdiLTJiMTRiOWMxNmJkOCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL3JrdmR4ZXptc2huenhndWx3dHdqLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI5NGUwMGJiMi0zNjU1LTRjZjQtOTVkOC0xMWM2ZWM5MTExZTMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzczODM5NTk1LCJpYXQiOjE3NzM4MzU5OTUsImVtYWlsIjoiZXZlbHluLnJAaGdycy51cyIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJldmVseW4uckBoZ3JzLnVzIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6ImV2ZWx5biBybyIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiOTRlMDBiYjItMzY1NS00Y2Y0LTk1ZDgtMTFjNmVjOTExMWUzIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NzM4MzU5OTV9XSwic2Vzc2lvbl9pZCI6IjI3ZTA2YzQ1LTFjYWItNGJhZC1iMDA0LTVkNjJhNGQwM2E0NCIsImlzX2Fub255bW91cyI6ZmFsc2V9.t-PNCU4B9EpXNDfQKqOnhpqZEvo-nwTwNaN6AL4gdgaGOtB5fZ_wkenieP6JJQz3SsB7bEsHYPrpZRozO29SRw\")",
+      "Bash(__NEW_LINE_c25589c10e0e65e0__ curl:*)",
+      "Bash(__NEW_LINE_bc4f53df31158e8c__ node -e \":*)",
+      "Bash(__NEW_LINE_658798fa7420265b__ node -e \":*)",
+      "Bash(__NEW_LINE_5c7b645bb7df11c6__ node -e \":*)",
+      "Bash(__NEW_LINE_c5269ee63420e38e__ node -e \":*)",
+      "Bash(__NEW_LINE_60d14f5140cac295__ node -e \":*)",
+      "Bash(cmd.exe /c \"npx tsc --noEmit 2>&1\")",
+      "Bash(cmd.exe /c \"npm run build 2>&1\")",
+      "Bash(cmd.exe /c \"npm run build\")",
+      "Bash(cmd.exe /c \"npx vite build 2>&1\")",
+      "Bash(/c/Users/muste/AppData/Roaming/npm/npx.cmd vite:*)",
+      "Bash(cmd.exe /c \"npx tsc --noEmit\")"
+    ]
+  }
+}
