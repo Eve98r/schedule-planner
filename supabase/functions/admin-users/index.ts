@@ -54,6 +54,16 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     })
 
+    const logAudit = async (action: string, targetType: string, targetId: string, details: Record<string, unknown> = {}) => {
+      await adminClient.from('audit_log').insert({
+        actor_id: user.id,
+        action,
+        target_type: targetType,
+        target_id: targetId,
+        details,
+      }).catch(() => {}) // best-effort logging
+    }
+
     const body = await req.json()
     const { action } = body
 
@@ -85,6 +95,7 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
         }
+        await logAudit('create-user', 'user', data.user.id, { email, full_name, role })
         return new Response(JSON.stringify({ user: { id: data.user.id, email, full_name, role } }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
@@ -102,6 +113,7 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
         }
+        await logAudit('delete-user', 'user', userId)
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
@@ -116,6 +128,7 @@ Deno.serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
         }
+        await logAudit('reset-password', 'user', userId)
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })

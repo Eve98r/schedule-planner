@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { format, isSameMonth, isToday } from 'date-fns'
+import { friendlyError } from '@/lib/errorMessages'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -97,7 +98,7 @@ export function DayCell({
       const shift = available[0]
       const { error } = await onClaim(shift.id_shift_type, shift.date)
       if (error) {
-        toast.error((error as { message?: string }).message ?? 'Failed to claim')
+        toast.error(friendlyError(error))
       } else {
         toast.success(`Claimed ${shift.id_shift_type}`)
       }
@@ -109,7 +110,7 @@ export function DayCell({
   const handlePick = async (shift: BonusShift) => {
     const { error } = await onClaim(shift.id_shift_type, shift.date)
     if (error) {
-      toast.error((error as { message?: string }).message ?? 'Failed to claim')
+      toast.error(friendlyError(error))
     } else {
       toast.success(`Claimed ${shift.id_shift_type}`)
     }

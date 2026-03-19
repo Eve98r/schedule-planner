@@ -45,9 +45,9 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 ### Auth Flow
 
 - Supabase email/password auth
-- `useAuth` hook manages session, auto-refreshes every 30s for non-admins (forces logout if password was reset)
-- Admin uses service role key (VITE_SUPABASE_SERVICE_ROLE_KEY) for user management operations
-- Service role client created in `useShiftClaims` (for admin managing other users' claims) and `UserManager`/`AssignmentTable` (for bulk operations)
+- `useAuth` hook manages session, auto-refreshes every 30s for non-admins (forces logout if password was reset), 30-min idle timeout for all users
+- Admin operations (user CRUD, password reset) go through Supabase Edge Function (`admin-users`) — service role key never leaves server
+- Client calls Edge Function via `src/lib/adminApi.ts` with the user's JWT for auth
 
 ### Day Types
 
@@ -84,6 +84,8 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 - `src/lib/parseImport.ts` — Parse .xlsx/.csv files into BonusShiftRow[] or DefaultScheduleRow[]. Handles Excel date serial numbers.
 - `src/lib/exportXlsx.ts` — Export bonus shift assignments to .xlsx
 - `src/lib/cn.ts` — clsx + tailwind-merge utility
+- `src/lib/errorMessages.ts` — Maps Supabase/Postgres errors to user-friendly messages
+- `src/lib/adminApi.ts` — Client-side wrapper for admin Edge Function calls
 
 ### UI Components
 - `src/components/ui/` — Radix-based primitives: badge, button, card, dialog, select, tabs, MonthPicker
@@ -122,8 +124,9 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 ```
 VITE_SUPABASE_URL=         # Supabase project URL
 VITE_SUPABASE_ANON_KEY=    # Supabase anon/public key
-VITE_SUPABASE_SERVICE_ROLE_KEY=  # Service role key (admin operations only)
 ```
+
+> **Note:** Service role key is used only in the Supabase Edge Function (`admin-users`), configured as an environment secret in the Supabase dashboard. It must never be in client-side code.
 
 ## Rules for Claude
 
@@ -140,3 +143,4 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=  # Service role key (admin operations only)
 | Date | Change | Files Affected |
 |---|---|---|
 | Initial | Schedule Planner application created | All files |
+| 2026-03-19 | Security hardening: removed localStorage password storage (show-once pattern), added file import validation (5MB limit, field sanitization, row count limit), added 30-min idle session timeout, added error message sanitization (friendlyError utility), added audit_log table and Edge Function logging | `UserManager.tsx`, `parseImport.ts`, `useAuth.ts`, `errorMessages.ts` (new), `002_audit_log.sql` (new), `admin-users/index.ts`, `DayCell.tsx`, `ShiftDropdown.tsx`, `AssignmentTable.tsx`, `ImportPanel.tsx` |

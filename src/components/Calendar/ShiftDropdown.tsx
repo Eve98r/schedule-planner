@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { X } from 'lucide-react'
 import type { BonusShift, ShiftClaim } from '@/types'
 import { toast } from 'sonner'
+import { friendlyError } from '@/lib/errorMessages'
 import {
   Dialog,
   DialogContent,
@@ -113,8 +114,7 @@ export function ShiftDropdown({
           if (!shift) return
           const { error } = await onClaim(shift.id_shift_type, shift.date)
           if (error) {
-            const msg = (error as { message?: string }).message ?? 'Failed to claim'
-            toast.error(msg)
+            toast.error(friendlyError(error))
           } else {
             toast.success(`Claimed ${shift.id_shift_type}`)
           }
