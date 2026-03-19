@@ -12,7 +12,7 @@ import {
 import { UserPlus, Check, X, Copy, Download, Trash2, Upload, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { supabase } from '@/lib/supabase'
-import { createClient } from '@supabase/supabase-js'
+import { createUser as apiCreateUser, deleteUser as apiDeleteUser, resetPassword as apiResetPassword, forceSignout as apiForceSignout } from '@/lib/adminApi'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 
@@ -130,8 +130,6 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   const [employeeInfoMap, setEmployeeInfoMap] = useState<Record<string, string>>({})
   const employeeInfoRef = useRef<HTMLInputElement>(null)
 
-  const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as string | undefined
-
   const fetchUsers = async () => {
     const [schedRes, profRes] = await Promise.all([
       supabase.from('default_schedules').select('employee'),
@@ -213,17 +211,6 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   }
 
   const handleCreate = async () => {
-    if (!serviceRoleKey) {
-      toast.error('VITE_SUPABASE_SERVICE_ROLE_KEY not set in .env')
-      return
-    }
-
-    const adminClient = createClient(
-      import.meta.env.VITE_SUPABASE_URL as string,
-      serviceRoleKey,
-      { auth: { persistSession: false, autoRefreshToken: false } }
-    )
-
     const toCreate = pendingUsers.filter((u) => u.allowed)
     if (toCreate.length === 0) {
       toast.error('No users selected')
@@ -236,35 +223,10 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
 
     for (const u of toCreate) {
       try {
-        const { data, error: authErr } = await adminClient.auth.admin.createUser({
-          email: u.email,
-          password: u.password,
-          email_confirm: true,
-          user_metadata: { full_name: u.name },
-        })
-
-        if (authErr) {
-          console.error(`Failed to create ${u.name}:`, authErr.message)
-          errors++
-          continue
-        }
-
-        const { error: profErr } = await adminClient.from('profiles').insert({
-          id: data.user.id,
-          email: u.email,
-          full_name: u.name,
-          role: 'employee',
-        })
-
-        if (profErr) {
-          console.error(`Failed to create profile for ${u.name}:`, profErr.message)
-          errors++
-          continue
-        }
-
+        await apiCreateUser(u.email, u.password, u.name, 'employee')
         created.push({ name: u.name, email: u.email, password: u.password })
       } catch (err) {
-        console.error(`Error creating ${u.name}:`, err)
+        console.error(`Failed to create ${u.name}:`, err)
         errors++
       }
     }
@@ -292,24 +254,14 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   }
 
   const handleDelete = async () => {
-    if (!deleteTarget || !serviceRoleKey) return
+    if (!deleteTarget) return
     setDeleting(true)
 
-    const adminClient = createClient(
-      import.meta.env.VITE_SUPABASE_URL as string,
-      serviceRoleKey,
-      { auth: { persistSession: false, autoRefreshToken: false } }
-    )
-
-    // Delete claims, then profile, then auth user
-    await adminClient.from('shift_claims').delete().eq('claimed_by', deleteTarget.id)
-    await adminClient.from('profiles').delete().eq('id', deleteTarget.id)
-    const { error } = await adminClient.auth.admin.deleteUser(deleteTarget.id)
-
-    if (error) {
-      toast.error(`Failed to delete ${deleteTarget.full_name}: ${error.message}`)
-    } else {
+    try {
+      await apiDeleteUser(deleteTarget.id)
       toast.success(`Deleted ${deleteTarget.full_name}`)
+    } catch (err) {
+      toast.error(`Failed to delete ${deleteTarget.full_name}: ${(err as Error).message}`)
     }
 
     setDeleting(false)
@@ -318,26 +270,19 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   }
 
   const handleDeleteAll = async () => {
-    if (!serviceRoleKey) return
     setDeleting(true)
-
-    const adminClient = createClient(
-      import.meta.env.VITE_SUPABASE_URL as string,
-      serviceRoleKey,
-      { auth: { persistSession: false, autoRefreshToken: false } }
-    )
 
     let deleted = 0
     let errors = 0
 
     for (const u of existingUsers) {
       if (u.id === currentUser.id) continue
-
-      await adminClient.from('shift_claims').delete().eq('claimed_by', u.id)
-      await adminClient.from('profiles').delete().eq('id', u.id)
-      const { error } = await adminClient.auth.admin.deleteUser(u.id)
-      if (error) errors++
-      else deleted++
+      try {
+        await apiDeleteUser(u.id)
+        deleted++
+      } catch {
+        errors++
+      }
     }
 
     setDeleting(false)
@@ -348,42 +293,15 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   }
 
   const signOutUser = async (userId: string) => {
-    if (!serviceRoleKey) return
-    // Use GoTrue admin API to delete all sessions for this user
-    await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/admin/users/${userId}/factors`,
-      {
-        method: 'DELETE',
-        headers: {
-          apikey: serviceRoleKey,
-          Authorization: `Bearer ${serviceRoleKey}`,
-        },
-      }
-    ).catch(() => {})
-    // Also update the user to force token refresh by changing updated_at
-    await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/admin/users/${userId}`,
-      {
-        method: 'PUT',
-        headers: {
-          apikey: serviceRoleKey,
-          Authorization: `Bearer ${serviceRoleKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ app_metadata: { force_signout: Date.now() } }),
-      }
-    ).catch(() => {})
+    try {
+      await apiForceSignout(userId)
+    } catch {
+      // Best-effort sign out
+    }
   }
 
   const handleResetAllPasswords = async () => {
-    if (!serviceRoleKey) return
     setResetting(true)
-
-    const adminClient = createClient(
-      import.meta.env.VITE_SUPABASE_URL as string,
-      serviceRoleKey,
-      { auth: { persistSession: false, autoRefreshToken: false } }
-    )
 
     const newPasswords: Record<string, string> = {}
     let count = 0
@@ -392,13 +310,13 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
     for (const u of existingUsers) {
       if (u.id === currentUser.id) continue
       const newPw = generatePassword()
-      const { error } = await adminClient.auth.admin.updateUserById(u.id, { password: newPw })
-      if (error) {
-        errors++
-      } else {
+      try {
+        await apiResetPassword(u.id, newPw)
         newPasswords[u.email] = newPw
         await signOutUser(u.id)
         count++
+      } catch {
+        errors++
       }
     }
 
@@ -411,67 +329,35 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   }
 
   const handleResetSingle = async () => {
-    if (!resetTarget || !serviceRoleKey) return
-    const adminClient = createClient(
-      import.meta.env.VITE_SUPABASE_URL as string,
-      serviceRoleKey,
-      { auth: { persistSession: false, autoRefreshToken: false } }
-    )
+    if (!resetTarget) return
     const newPw = generatePassword()
-    const { error } = await adminClient.auth.admin.updateUserById(resetTarget.id, { password: newPw })
-    if (error) {
-      toast.error(`Failed: ${error.message}`)
-    } else {
+    try {
+      await apiResetPassword(resetTarget.id, newPw)
       setPasswordMap((prev) => ({ ...prev, [resetTarget.email]: newPw }))
       setShowPasswords(true)
-      // Sign out the user unless it's the admin themselves
       if (resetTarget.id !== currentUser.id) {
         await signOutUser(resetTarget.id)
       }
       toast.success(`Password reset for ${resetTarget.full_name}`)
+    } catch (err) {
+      toast.error(`Failed: ${(err as Error).message}`)
     }
     setResetTarget(null)
   }
 
   const handleManualCreate = async () => {
-    if (!serviceRoleKey) return
     if (!manualForm.name || !manualForm.email || !manualForm.password) {
       toast.error('All fields are required')
       return
     }
     setManualCreating(true)
 
-    const adminClient = createClient(
-      import.meta.env.VITE_SUPABASE_URL as string,
-      serviceRoleKey,
-      { auth: { persistSession: false, autoRefreshToken: false } }
-    )
-
-    const { data, error: authErr } = await adminClient.auth.admin.createUser({
-      email: manualForm.email,
-      password: manualForm.password,
-      email_confirm: true,
-      user_metadata: { full_name: manualForm.name },
-    })
-
-    if (authErr) {
-      toast.error(authErr.message)
-      setManualCreating(false)
-      return
-    }
-
-    const { error: profErr } = await adminClient.from('profiles').insert({
-      id: data.user.id,
-      email: manualForm.email,
-      full_name: manualForm.name,
-      role: manualForm.role,
-    })
-
-    if (profErr) {
-      toast.error(profErr.message)
-    } else {
+    try {
+      await apiCreateUser(manualForm.email, manualForm.password, manualForm.name, manualForm.role)
       toast.success(`Created ${manualForm.name}`)
       setPasswordMap((prev) => ({ ...prev, [manualForm.email]: manualForm.password }))
+    } catch (err) {
+      toast.error((err as Error).message)
     }
 
     setManualCreating(false)
@@ -548,11 +434,6 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
               </span>
             )}
           </div>
-          {!serviceRoleKey && (
-            <p className="text-xs text-destructive">
-              Add VITE_SUPABASE_SERVICE_ROLE_KEY to .env to enable user creation.
-            </p>
-          )}
         </div>
       </div>
 

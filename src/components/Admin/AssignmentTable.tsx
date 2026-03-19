@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Download, Trash2 } from 'lucide-react'
 import { MonthPicker } from '@/components/ui/MonthPicker'
 import { supabase } from '@/lib/supabase'
-import { createClient } from '@supabase/supabase-js'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -92,11 +91,7 @@ export function AssignmentTable() {
 
   const handleUnclaimAll = async () => {
     setUnclaiming(true)
-    const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as string | undefined
-    const client = serviceKey
-      ? createClient(import.meta.env.VITE_SUPABASE_URL as string, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
-      : supabase
-    const { error } = await client
+    const { error } = await supabase
       .from('shift_claims')
       .delete()
       .eq('month_year', monthYear)

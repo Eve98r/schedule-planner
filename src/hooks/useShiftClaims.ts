@@ -1,22 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { ShiftClaim } from '@/types'
 
-export function useShiftClaims(monthYear: string, isAdmin = false) {
+export function useShiftClaims(monthYear: string, _isAdmin = false) {
   const [claims, setClaims] = useState<ShiftClaim[]>([])
   const [loading, setLoading] = useState(true)
-
-  // Admin client that bypasses RLS for managing other users' shifts
-  const adminClient = useMemo(() => {
-    const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as string | undefined
-    if (!isAdmin || !serviceKey) return null
-    return createClient(
-      import.meta.env.VITE_SUPABASE_URL as string,
-      serviceKey,
-      { auth: { persistSession: false, autoRefreshToken: false } }
-    )
-  }, [isAdmin])
 
   const fetchClaims = useCallback(async () => {
     if (!monthYear) return
@@ -57,8 +45,7 @@ export function useShiftClaims(monthYear: string, isAdmin = false) {
     userId: string,
     date: string
   ) => {
-    const client = adminClient ?? supabase
-    const { error } = await client.from('shift_claims').insert({
+    const { error } = await supabase.from('shift_claims').insert({
       id_shift_type: idShiftType,
       claimed_by: userId,
       month_year: monthYear,
@@ -69,8 +56,7 @@ export function useShiftClaims(monthYear: string, isAdmin = false) {
   }
 
   const unclaimShift = async (idShiftType: string, userId: string) => {
-    const client = adminClient ?? supabase
-    const { error } = await client
+    const { error } = await supabase
       .from('shift_claims')
       .delete()
       .eq('id_shift_type', idShiftType)
