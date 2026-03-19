@@ -366,7 +366,7 @@ export function ImportPanel() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBonusPreview(null)}>Cancel</Button>
-            <Button onClick={insertBonusShifts}>Insert All</Button>
+            <Button onClick={() => insertBonusShifts()}>Insert All</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
