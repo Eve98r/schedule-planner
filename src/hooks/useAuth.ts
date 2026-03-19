@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/types'
+
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000 // 30 minutes
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
@@ -59,6 +61,31 @@ export function useAuth() {
     }, 30_000)
     return () => clearInterval(interval)
   }, [session, profile])
+
+  // Idle timeout: sign out after 30 minutes of no user interaction
+  const idleTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => {
+    if (!session) return
+
+    const resetTimer = () => {
+      clearTimeout(idleTimer.current)
+      idleTimer.current = setTimeout(async () => {
+        await supabase.auth.signOut()
+        setUser(null)
+        setProfile(null)
+        setSession(null)
+      }, IDLE_TIMEOUT_MS)
+    }
+
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'] as const
+    events.forEach((e) => window.addEventListener(e, resetTimer))
+    resetTimer()
+
+    return () => {
+      clearTimeout(idleTimer.current)
+      events.forEach((e) => window.removeEventListener(e, resetTimer))
+    }
+  }, [session])
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })

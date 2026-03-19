@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/lib/supabase'
 import { createUser as apiCreateUser, deleteUser as apiDeleteUser, resetPassword as apiResetPassword, forceSignout as apiForceSignout } from '@/lib/adminApi'
 import { toast } from 'sonner'
+import { friendlyError } from '@/lib/errorMessages'
 import * as XLSX from 'xlsx'
 
 interface ExistingUser {
@@ -113,20 +114,15 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   const [showManual, setShowManual] = useState(false)
   const [manualForm, setManualForm] = useState({ name: '', email: '', password: '', role: 'employee' })
   const [manualCreating, setManualCreating] = useState(false)
-  // Store passwords in localStorage so they persist
-  const [passwordMap, setPasswordMap] = useState<Record<string, string>>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('sp_passwords') ?? '{}')
-    } catch {
-      return {}
-    }
-  })
+  // Transient password map — only holds passwords from the current session
+  // Passwords are shown once at creation/reset time and never persisted
+  const [passwordMap, setPasswordMap] = useState<Record<string, string>>({})
   const [showPasswords, setShowPasswords] = useState(false)
-
-  // Sync to localStorage whenever passwordMap changes
+  // Remove any legacy stored passwords from localStorage (one-time cleanup)
   useEffect(() => {
-    localStorage.setItem('sp_passwords', JSON.stringify(passwordMap))
-  }, [passwordMap])
+    localStorage.removeItem('sp_passwords')
+  }, [])
+
   const [employeeInfoMap, setEmployeeInfoMap] = useState<Record<string, string>>({})
   const employeeInfoRef = useRef<HTMLInputElement>(null)
 
@@ -261,7 +257,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
       await apiDeleteUser(deleteTarget.id)
       toast.success(`Deleted ${deleteTarget.full_name}`)
     } catch (err) {
-      toast.error(`Failed to delete ${deleteTarget.full_name}: ${(err as Error).message}`)
+      toast.error(`Failed to delete ${deleteTarget.full_name}: ${friendlyError(err)}`)
     }
 
     setDeleting(false)
@@ -340,7 +336,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
       }
       toast.success(`Password reset for ${resetTarget.full_name}`)
     } catch (err) {
-      toast.error(`Failed: ${(err as Error).message}`)
+      toast.error(`Failed: ${friendlyError(err)}`)
     }
     setResetTarget(null)
   }
@@ -357,7 +353,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
       toast.success(`Created ${manualForm.name}`)
       setPasswordMap((prev) => ({ ...prev, [manualForm.email]: manualForm.password }))
     } catch (err) {
-      toast.error((err as Error).message)
+      toast.error(friendlyError(err))
     }
 
     setManualCreating(false)
@@ -446,7 +442,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
               type="text"
               value={userSearch}
               onChange={(e) => setUserSearch(e.target.value)}
-              placeholder="Search name, email or password..."
+              placeholder="Search name or email..."
               className="flex h-8 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
             <div className="flex gap-2 shrink-0">
@@ -514,8 +510,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
                     const q = userSearch.toLowerCase()
                     return (
                       u.full_name.toLowerCase().includes(q) ||
-                      u.email.toLowerCase().includes(q) ||
-                      (passwordMap[u.email] ?? '').toLowerCase().includes(q)
+                      u.email.toLowerCase().includes(q)
                     )
                   }).map((u, idx) => {
                     const isMe = u.id === currentUser.id
@@ -781,7 +776,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
           <DialogHeader>
             <DialogTitle>Users Created</DialogTitle>
             <DialogDescription>
-              Save these credentials — passwords cannot be recovered later.
+              Copy these credentials now — passwords are shown only once and cannot be recovered later.
             </DialogDescription>
           </DialogHeader>
 

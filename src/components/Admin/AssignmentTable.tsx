@@ -5,6 +5,7 @@ import { Download, Trash2 } from 'lucide-react'
 import { MonthPicker } from '@/components/ui/MonthPicker'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { friendlyError } from '@/lib/errorMessages'
 import {
   Dialog,
   DialogContent,
@@ -96,7 +97,7 @@ export function AssignmentTable() {
       .delete()
       .eq('month_year', monthYear)
     if (error) {
-      toast.error(error.message)
+      toast.error(friendlyError(error))
     } else {
       toast.success(`Unclaimed all shifts for ${monthYear}`)
       setClaims([])

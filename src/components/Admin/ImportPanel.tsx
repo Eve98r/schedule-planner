@@ -19,6 +19,7 @@ import {
   type DefaultScheduleRow,
 } from '@/lib/parseImport'
 import { toast } from 'sonner'
+import { friendlyError } from '@/lib/errorMessages'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -167,7 +168,7 @@ export function ImportPanel() {
 
     const { error } = await supabase.from('bonus_shifts').upsert(bonusPreview, { onConflict: 'id_shift_type' })
     if (error) {
-      toast.error(error.message)
+      toast.error(friendlyError(error))
     } else {
       const monthYear = bonusPreview[0]?.month_year ?? ''
       if (monthYear) logFileImport(monthYear, 'bonus')
@@ -183,7 +184,7 @@ export function ImportPanel() {
     if (!schedulePreview) return
     const { error } = await supabase.from('default_schedules').insert(schedulePreview)
     if (error) {
-      toast.error(error.message)
+      toast.error(friendlyError(error))
     } else {
       const monthYear = schedulePreview[0]?.month_year ?? ''
       if (monthYear) logFileImport(monthYear, 'schedules')
@@ -199,7 +200,7 @@ export function ImportPanel() {
       .from('bonus_shifts')
       .delete()
       .eq('month_year', clearMonth)
-    if (error) toast.error(error.message)
+    if (error) toast.error(friendlyError(error))
     else { clearFileImportLog(clearMonth, 'bonus'); toast.success(`Cleared bonus shifts for ${clearMonth}`); fetchImportedMonths() }
   }
 
@@ -209,7 +210,7 @@ export function ImportPanel() {
       .from('default_schedules')
       .delete()
       .eq('month_year', clearMonth)
-    if (error) toast.error(error.message)
+    if (error) toast.error(friendlyError(error))
     else { clearFileImportLog(clearMonth, 'schedules'); toast.success(`Cleared default schedules for ${clearMonth}`); fetchImportedMonths() }
   }
 
