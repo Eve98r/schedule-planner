@@ -104,7 +104,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
     unclaimShift,
     getUserClaimsCount,
     getUserClaimForDate,
-  } = useShiftClaims(monthYear, isAdmin)
+  } = useShiftClaims(monthYear)
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)

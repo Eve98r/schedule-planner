@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { ShiftClaim } from '@/types'
 
-export function useShiftClaims(monthYear: string, _isAdmin = false) {
+export function useShiftClaims(monthYear: string) {
   const [claims, setClaims] = useState<ShiftClaim[]>([])
   const [loading, setLoading] = useState(true)
 
