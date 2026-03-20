@@ -9,7 +9,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <App />
-      <Toaster position="top-right" richColors offset={{ top: 60 }} />
+      <Toaster position="bottom-right" richColors />
     </BrowserRouter>
   </StrictMode>,
 )
