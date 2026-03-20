@@ -246,7 +246,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
               .map((day) => {
                 const dateStr = format(day, 'yyyy-MM-dd')
                 const schedule = getScheduleForDate(day)
-                const bonusShifts = isViewingOther ? [] : getBonusShiftsForDate(day)
+                const bonusShifts = canManageShifts ? getBonusShiftsForDate(day) : []
                 const userClaim = effectiveUserId ? getUserClaimForDate(effectiveUserId, dateStr) : undefined
 
                 return (
@@ -271,9 +271,9 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
                           bonusShifts={bonusShifts}
                           userClaim={userClaim}
                           claimedShiftIds={claimedShiftIds}
-                          monthlyLimitReached={canManageShifts ? monthlyLimitReached : true}
-                          onClaim={canManageShifts ? handleClaim : noopClaim}
-                          onUnclaim={canManageShifts ? handleUnclaim : noopUnclaim}
+                          monthlyLimitReached={monthlyLimitReached}
+                          onClaim={handleClaim}
+                          onUnclaim={handleUnclaim}
                         />
                       </div>
                     )}

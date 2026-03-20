@@ -38,10 +38,12 @@ interface CreatedUser {
 }
 
 function generatePassword(): string {
-  const chars = 'abcdefghijkmnpqrstuvwxyz23456789'
+  const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!@#$%'
+  const bytes = new Uint8Array(12)
+  crypto.getRandomValues(bytes)
   let pw = ''
-  for (let i = 0; i < 8; i++) {
-    pw += chars[Math.floor(Math.random() * chars.length)]
+  for (let i = 0; i < 12; i++) {
+    pw += chars[bytes[i] % chars.length]
   }
   return pw
 }
@@ -59,7 +61,18 @@ interface EmployeeInfo {
   isDefault: boolean
 }
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
+const MAX_ROWS = 10_000
+const ALLOWED_EXTENSIONS = ['.xlsx', '.csv']
+
 async function parseEmployeeInfo(file: File): Promise<EmployeeInfo[]> {
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(`File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed: 5 MB.`)
+  }
+  const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+  if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    throw new Error(`Invalid file type "${ext}". Only .xlsx and .csv files are accepted.`)
+  }
   const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = (e) => resolve(e.target!.result as ArrayBuffer)
@@ -69,6 +82,9 @@ async function parseEmployeeInfo(file: File): Promise<EmployeeInfo[]> {
   const wb = XLSX.read(buffer, { type: 'array', raw: false })
   const ws = wb.Sheets[wb.SheetNames[0]]
   const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 })
+  if (raw.length > MAX_ROWS) {
+    throw new Error(`File contains too many rows (${raw.length}). Maximum allowed: ${MAX_ROWS}.`)
+  }
 
   const results: EmployeeInfo[] = []
   for (const row of raw) {
