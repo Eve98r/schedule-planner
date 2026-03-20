@@ -91,13 +91,11 @@ export async function parseBonusList(file: File): Promise<BonusShiftRow[]> {
 
   // Detect header row and build column mapping
   let colDate = 0, colShiftType = 1, colRowNumber = 2, colIdShiftType = 3
-  let hasHeader = false
   let startRow = 0
 
   if (raw.length > 0) {
     const firstRow = (raw[0] as unknown[]).map(v => String(v).trim().toLowerCase())
     if (firstRow[0] === 'date' || firstRow[0] === 'datum') {
-      hasHeader = true
       startRow = 1
       // Map columns by header name
       const headerMap: Record<string, number> = {}
