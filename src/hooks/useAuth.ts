@@ -56,15 +56,16 @@ export function useAuth() {
     return () => subscription.unsubscribe()
   }, [fetchProfile])
 
-  // Periodically try to refresh the session (every 30s).
-  // If admin reset the password, the refresh token becomes invalid
-  // and this will force the user back to the login screen.
-  // Skip for admins — they control the resets themselves.
+  // Periodically refresh the session (every 30s).
+  // For employees: if admin reset their password, the refresh token becomes
+  // invalid and this forces them back to the login screen.
+  // For admins: keeps the JWT fresh so edge function calls don't fail.
   useEffect(() => {
-    if (!session || !profile || profile.role === 'admin') return
+    if (!session || !profile) return
+    const isAdmin = profile.role === 'admin'
     const interval = setInterval(async () => {
       const { error } = await supabase.auth.refreshSession()
-      if (error) {
+      if (error && !isAdmin) {
         await supabase.auth.signOut()
         setUser(null)
         setProfile(null)

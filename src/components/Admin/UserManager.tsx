@@ -327,7 +327,8 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
         newPasswords[u.email] = newPw
         await signOutUser(u.id)
         count++
-      } catch {
+      } catch (err) {
+        console.error(`Failed to reset password for ${u.full_name}:`, err)
         errors++
       }
     }
