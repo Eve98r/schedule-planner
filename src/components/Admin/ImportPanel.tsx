@@ -125,8 +125,10 @@ export function ImportPanel() {
     try {
       const rows = await parseBonusList(file)
       setBonusPreview(rows)
-    } catch {
-      toast.error('Failed to parse bonus list file')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : String(err)
+      console.error('Bonus list parse error:', err)
+      toast.error(msg || 'Failed to parse bonus list file')
     }
     e.target.value = ''
   }
@@ -137,8 +139,10 @@ export function ImportPanel() {
     try {
       const rows = await parseDefaultSchedules(file)
       setSchedulePreview(rows)
-    } catch {
-      toast.error('Failed to parse schedules file')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : String(err)
+      console.error('Schedule parse error:', err)
+      toast.error(msg || 'Failed to parse schedules file')
     }
     e.target.value = ''
   }
