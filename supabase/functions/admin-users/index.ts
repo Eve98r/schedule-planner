@@ -27,21 +27,27 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-    // Create a client with the caller's JWT to check their role
-    const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
-      global: { headers: { Authorization: authHeader } },
+    // Verify the user's JWT by calling the auth API directly
+    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        Authorization: authHeader,
+        apikey: Deno.env.get('SUPABASE_ANON_KEY')!,
+      },
     })
-
-    const { data: { user }, error: userError } = await userClient.auth.getUser()
-    if (userError || !user) {
+    const userBody = await userRes.json()
+    if (!userRes.ok) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+    const user = userBody
 
-    // Check admin role from profiles table
-    const { data: profile } = await userClient.from('profiles').select('role').eq('id', user.id).single()
+    // Check admin role from profiles table using service role client
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+    const { data: profile } = await adminClient.from('profiles').select('role').eq('id', user.id).single()
     if (!profile || profile.role !== 'admin') {
       return new Response(JSON.stringify({ error: 'Admin access required' }), {
         status: 403,
@@ -49,19 +55,16 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Admin client with service role key for privileged operations
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-
     const logAudit = async (action: string, targetType: string, targetId: string, details: Record<string, unknown> = {}) => {
-      await adminClient.from('audit_log').insert({
-        actor_id: user.id,
-        action,
-        target_type: targetType,
-        target_id: targetId,
-        details,
-      }).catch(() => {}) // best-effort logging
+      try {
+        await adminClient.from('audit_log').insert({
+          actor_id: user.id,
+          action,
+          target_type: targetType,
+          target_id: targetId,
+          details,
+        })
+      } catch { /* best-effort logging */ }
     }
 
     const body = await req.json()
