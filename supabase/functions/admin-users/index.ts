@@ -4,6 +4,16 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+/** Map internal error messages to safe user-facing messages */
+function safeErrorMessage(raw: string): string {
+  if (/duplicate.*email|email.*already.*registered/i.test(raw)) return 'An account with this email already exists.'
+  if (/invalid.*password|password.*too/i.test(raw)) return 'Invalid password. Must be at least 6 characters.'
+  if (/user.*not.*found/i.test(raw)) return 'User not found.'
+  if (/duplicate key/i.test(raw)) return 'This record already exists.'
+  if (/violates.*foreign key/i.test(raw)) return 'Referenced record not found.'
+  return 'Operation failed. Please try again.'
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -73,6 +83,18 @@ Deno.serve(async (req) => {
     switch (action) {
       case 'create-user': {
         const { email, password, full_name, role = 'employee' } = body
+        if (!email || typeof email !== 'string' || !password || typeof password !== 'string' || !full_name || typeof full_name !== 'string') {
+          return new Response(JSON.stringify({ error: 'Missing required fields: email, password, full_name' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        if (!['employee', 'admin'].includes(role)) {
+          return new Response(JSON.stringify({ error: 'Invalid role. Must be "employee" or "admin".' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
         const { data, error } = await adminClient.auth.admin.createUser({
           email,
           password,
@@ -80,7 +102,7 @@ Deno.serve(async (req) => {
           user_metadata: { full_name },
         })
         if (error) {
-          return new Response(JSON.stringify({ error: error.message }), {
+          return new Response(JSON.stringify({ error: safeErrorMessage(error.message) }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
@@ -93,7 +115,7 @@ Deno.serve(async (req) => {
           role,
         })
         if (profErr) {
-          return new Response(JSON.stringify({ error: profErr.message }), {
+          return new Response(JSON.stringify({ error: safeErrorMessage(profErr.message) }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
@@ -106,12 +128,18 @@ Deno.serve(async (req) => {
 
       case 'delete-user': {
         const { userId } = body
+        if (!userId || typeof userId !== 'string') {
+          return new Response(JSON.stringify({ error: 'Missing or invalid userId' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
         // Delete claims, profile, then auth user
         await adminClient.from('shift_claims').delete().eq('claimed_by', userId)
         await adminClient.from('profiles').delete().eq('id', userId)
         const { error } = await adminClient.auth.admin.deleteUser(userId)
         if (error) {
-          return new Response(JSON.stringify({ error: error.message }), {
+          return new Response(JSON.stringify({ error: safeErrorMessage(error.message) }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
@@ -124,9 +152,15 @@ Deno.serve(async (req) => {
 
       case 'reset-password': {
         const { userId, password } = body
+        if (!userId || typeof userId !== 'string' || !password || typeof password !== 'string') {
+          return new Response(JSON.stringify({ error: 'Missing or invalid userId/password' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
         const { error } = await adminClient.auth.admin.updateUserById(userId, { password })
         if (error) {
-          return new Response(JSON.stringify({ error: error.message }), {
+          return new Response(JSON.stringify({ error: safeErrorMessage(error.message) }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
@@ -139,6 +173,12 @@ Deno.serve(async (req) => {
 
       case 'force-signout': {
         const { userId } = body
+        if (!userId || typeof userId !== 'string') {
+          return new Response(JSON.stringify({ error: 'Missing or invalid userId' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
         // Delete MFA factors to invalidate sessions
         await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}/factors`, {
           method: 'DELETE',
@@ -166,7 +206,8 @@ Deno.serve(async (req) => {
         })
     }
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error('admin-users error:', err)
+    return new Response(JSON.stringify({ error: 'Internal server error. Please try again.' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
