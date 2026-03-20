@@ -6,7 +6,7 @@ import { CalendarPage } from '@/pages/CalendarPage'
 import { AdminPage } from '@/pages/AdminPage'
 
 function App() {
-  const { profile, loading, signIn, signOut } = useAuth()
+  const { profile, loading, signIn, signInWithGoogle, signOut } = useAuth()
 
   if (loading) {
     return (
@@ -19,7 +19,7 @@ function App() {
   if (!profile) {
     return (
       <Routes>
-        <Route path="*" element={<LoginPage onSignIn={signIn} />} />
+        <Route path="*" element={<LoginPage onSignIn={signIn} onGoogleSignIn={signInWithGoogle} />} />
       </Routes>
     )
   }

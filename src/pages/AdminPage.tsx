@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ImportPanel } from '@/components/Admin/ImportPanel'
 import { AssignmentTable } from '@/components/Admin/AssignmentTable'
@@ -10,6 +10,9 @@ interface AdminPageProps {
 }
 
 export function AdminPage({ profile }: AdminPageProps) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'import'
+
   if (profile.role !== 'admin') {
     return <Navigate to="/calendar" replace />
   }
@@ -17,7 +20,7 @@ export function AdminPage({ profile }: AdminPageProps) {
   return (
     <div className="mx-auto flex h-full max-w-5xl flex-col px-4 py-4">
       <h1 className="mb-4 text-2xl font-semibold shrink-0">Admin Panel</h1>
-      <Tabs defaultValue="import" className="flex flex-1 flex-col overflow-hidden">
+      <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v }, { replace: true })} className="flex flex-1 flex-col overflow-hidden">
         <TabsList className="shrink-0 -ml-3">
           <TabsTrigger value="import">Data Import</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
