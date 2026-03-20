@@ -217,29 +217,27 @@ export function ImportPanel() {
   return (
     <div className="space-y-3">
       {/* Imported Data Overview */}
-      {importedMonths.length > 0 && (
-        <div className="rounded-lg bg-background py-3 flex items-center gap-3 flex-wrap">
-          <h3 className="text-sm font-medium text-muted-foreground">Imported Data</h3>
-            {importedMonths.map((m) => {
+      <div className="rounded-lg border border-border bg-card px-4 py-3 flex items-center gap-3 flex-wrap">
+        <h3 className="text-sm font-medium text-muted-foreground">Imported Data</h3>
+          {importedMonths.length > 0 ? (
+            importedMonths.map((m) => {
               const [y, mo] = m.month_year.split('-')
               const label = `${MONTHS[parseInt(mo) - 1]} ${y}`
               return (
                 <div key={m.month_year} className="inline-flex items-center gap-1.5 text-[10px]">
-                  {m.bonusCount > 0 && (
-                    <span className="rounded-full bg-[#ece0f5] text-[#3b0f62] px-2 py-0.5 font-medium">
-                      {label} · {m.bonusFiles} {m.bonusFiles === 1 ? 'file' : 'files'} · {m.bonusCount} shifts
-                    </span>
-                  )}
-                  {m.scheduleCount > 0 && (
-                    <span className="rounded-full bg-[#fdf3d4] text-[#7a6010] px-2 py-0.5 font-medium">
-                      {label} · {m.scheduleFiles} {m.scheduleFiles === 1 ? 'file' : 'files'} · {m.scheduleCount} schedule days
-                    </span>
-                  )}
+                  <span className="rounded-full bg-[#ece0f5] text-[#3b0f62] px-2 py-0.5 font-medium">
+                    {label} · {m.bonusFiles} {m.bonusFiles === 1 ? 'file' : 'files'} · {m.bonusCount} shifts
+                  </span>
+                  <span className="rounded-full bg-[#fdf3d4] text-[#7a6010] px-2 py-0.5 font-medium">
+                    {label} · {m.scheduleFiles} {m.scheduleFiles === 1 ? 'file' : 'files'} · {m.scheduleCount} schedule days
+                  </span>
                 </div>
               )
-            })}
-        </div>
-      )}
+            })
+          ) : (
+            <span className="text-[10px] text-muted-foreground">0 files · 0 data</span>
+          )}
+      </div>
 
       {/* Import Bonus List */}
       <Card className="border-l-4 border-l-[#3b0f62] border border-[#3b0f62]/20 bg-[#ece0f5]">
