@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,6 +17,22 @@ export function LoginPage({ onSignIn, onGoogleSignIn }: LoginPageProps) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+
+  // Catch OAuth error params from URL and show a clean message
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'))
+    const errorCode = params.get('error_code') || hashParams.get('error_code')
+    if (errorCode || params.get('error') || hashParams.get('error')) {
+      if (errorCode === 'signup_disabled') {
+        setError('This account is not authorized to sign in with Google sign-in. Please contact your administrator.')
+      } else {
+        setError('Sign-in failed. Please try again or contact your administrator.')
+      }
+      // Clean the URL
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
