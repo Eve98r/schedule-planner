@@ -454,26 +454,24 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
               {showPasswords ? <EyeOff className="mr-1 h-3 w-3" /> : <Eye className="mr-1 h-3 w-3" />}
               {showPasswords ? 'Hide' : 'Show'} Passwords
             </Button>
-            {existingUsers.length > 1 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowResetAll(true)}
-              >
-                <RefreshCw className="mr-1 h-3 w-3" />
-                Reset All Passwords
-              </Button>
-            )}
-            {existingUsers.length > 1 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setShowDeleteAll(true)}
-              >
-                <Trash2 className="mr-1 h-3 w-3" />
-                Delete All
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={existingUsers.length <= 1}
+              onClick={() => setShowResetAll(true)}
+            >
+              <RefreshCw className="mr-1 h-3 w-3" />
+              Reset All Passwords
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={existingUsers.length <= 1}
+              onClick={() => setShowDeleteAll(true)}
+            >
+              <Trash2 className="mr-1 h-3 w-3" />
+              Delete All
+            </Button>
           </div>
           </div>
         </div>
