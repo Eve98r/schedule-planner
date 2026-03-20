@@ -79,9 +79,9 @@ async function parseEmployeeInfo(file: File): Promise<EmployeeInfo[]> {
     reader.onerror = reject
     reader.readAsArrayBuffer(file)
   })
-  const wb = XLSX.read(buffer, { type: 'array', raw: false })
+  const wb = XLSX.read(buffer, { type: 'array' })
   const ws = wb.Sheets[wb.SheetNames[0]]
-  const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 })
+  const raw = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true })
   if (raw.length > MAX_ROWS) {
     throw new Error(`File contains too many rows (${raw.length}). Maximum allowed: ${MAX_ROWS}.`)
   }
@@ -408,7 +408,6 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
           <p className="text-sm text-muted-foreground">
             {namesToCreate.length} employees ready to create.
             {existingNames.size > 0 && ` ${existingNames.size} already have accounts.`}
-            {importedEmployees.length > 0 && ` (filtered to "default" employees from imported file)`}
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -440,9 +439,9 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
               <UserPlus className="mr-2 h-4 w-4" />
               Create Users Manually
             </Button>
-            {Object.keys(employeeInfoMap).length > 0 && (
+            {importedEmployees.length > 0 && (
               <span className="text-xs text-green-600">
-                {Object.keys(employeeInfoMap).length} emails loaded
+                {importedEmployees.length} emails loaded
               </span>
             )}
           </div>
