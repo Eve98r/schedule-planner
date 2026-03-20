@@ -11,20 +11,32 @@ export function useAuth() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string, provider?: string) => {
     const { data } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single()
+
+    // OAuth users must have an existing admin profile — block everyone else
+    if (provider && provider !== 'email') {
+      if (!data || data.role !== 'admin') {
+        await supabase.auth.signOut()
+        setUser(null)
+        setProfile(null)
+        setSession(null)
+        return
+      }
+    }
+
     setProfile(data)
   }, [])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
       setSession(s)
       setUser(s?.user ?? null)
-      if (s?.user) fetchProfile(s.user.id)
+      if (s?.user) await fetchProfile(s.user.id, s.user.app_metadata?.provider)
       setLoading(false)
     })
 
@@ -33,7 +45,7 @@ export function useAuth() {
         setSession(s)
         setUser(s?.user ?? null)
         if (s?.user) {
-          fetchProfile(s.user.id)
+          fetchProfile(s.user.id, s.user.app_metadata?.provider)
         } else {
           setProfile(null)
         }
@@ -92,6 +104,16 @@ export function useAuth() {
     return { error }
   }
 
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + window.location.pathname,
+      },
+    })
+    return { error }
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
     setUser(null)
@@ -99,5 +121,5 @@ export function useAuth() {
     setSession(null)
   }
 
-  return { user, profile, session, loading, signIn, signOut }
+  return { user, profile, session, loading, signIn, signInWithGoogle, signOut }
 }
