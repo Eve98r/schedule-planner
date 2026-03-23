@@ -130,14 +130,19 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   const [showManual, setShowManual] = useState(false)
   const [manualForm, setManualForm] = useState({ name: '', email: '', password: '', role: 'employee' })
   const [manualCreating, setManualCreating] = useState(false)
-  // Transient password map — only holds passwords from the current session
-  // Passwords are shown once at creation/reset time and never persisted
-  const [passwordMap, setPasswordMap] = useState<Record<string, string>>({})
+  // Password map — persisted in localStorage so passwords survive page reloads
+  const [passwordMap, setPasswordMap] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('sp_passwords') || '{}')
+    } catch {
+      return {}
+    }
+  })
   const [showPasswords, setShowPasswords] = useState(false)
-  // Remove any legacy stored passwords from localStorage (one-time cleanup)
+  // Sync passwordMap to localStorage whenever it changes
   useEffect(() => {
-    localStorage.removeItem('sp_passwords')
-  }, [])
+    localStorage.setItem('sp_passwords', JSON.stringify(passwordMap))
+  }, [passwordMap])
 
   const [employeeInfoMap, setEmployeeInfoMap] = useState<Record<string, string>>({})
   const employeeInfoRef = useRef<HTMLInputElement>(null)
