@@ -12,7 +12,7 @@ import {
 import { UserPlus, Check, X, Copy, Download, Trash2, Upload, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { supabase } from '@/lib/supabase'
-import { createUser as apiCreateUser, deleteUser as apiDeleteUser, resetPassword as apiResetPassword, forceSignout as apiForceSignout } from '@/lib/adminApi'
+import { createUser as apiCreateUser, deleteUser as apiDeleteUser, resetPassword as apiResetPassword, resetAllPasswords as apiResetAllPasswords, forceSignout as apiForceSignout } from '@/lib/adminApi'
 import { toast } from 'sonner'
 import { friendlyError } from '@/lib/errorMessages'
 import * as XLSX from 'xlsx'
@@ -325,34 +325,31 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
     setResetting(true)
 
     const usersToReset = existingUsers.filter((u) => u.id !== currentUser.id)
-    const passwords = usersToReset.map((u) => ({ ...u, newPw: generatePassword() }))
+    const userPasswords = usersToReset.map((u) => ({ userId: u.id, email: u.email, password: generatePassword() }))
 
-    const results = await Promise.allSettled(
-      passwords.map(async (u) => {
-        await apiResetPassword(u.id, u.newPw)
-        signOutUser(u.id) // fire-and-forget
-        return { email: u.email, newPw: u.newPw }
-      })
-    )
+    try {
+      const { results, successCount } = await apiResetAllPasswords(
+        userPasswords.map((u) => ({ userId: u.userId, password: u.password }))
+      )
 
-    const newPasswords: Record<string, string> = {}
-    let count = 0
-    let errors = 0
-    for (const r of results) {
-      if (r.status === 'fulfilled') {
-        newPasswords[r.value.email] = r.value.newPw
-        count++
-      } else {
-        errors++
+      const newPasswords: Record<string, string> = {}
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].success) {
+          newPasswords[userPasswords[i].email] = userPasswords[i].password
+        }
       }
+
+      const errors = results.length - successCount
+      setPasswordMap((prev) => ({ ...prev, ...newPasswords }))
+      setShowPasswords(true)
+      if (successCount > 0) toast.success(`Reset ${successCount} passwords`)
+      if (errors > 0) toast.error(`${errors} resets failed`)
+    } catch {
+      toast.error('Failed to reset passwords')
     }
 
-    setPasswordMap((prev) => ({ ...prev, ...newPasswords }))
     setResetting(false)
     setShowResetAll(false)
-    setShowPasswords(true)
-    if (count > 0) toast.success(`Reset ${count} passwords`)
-    if (errors > 0) toast.error(`${errors} resets failed`)
   }
 
   const handleResetSingle = async () => {

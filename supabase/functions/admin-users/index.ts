@@ -171,6 +171,42 @@ Deno.serve(async (req) => {
         })
       }
 
+      case 'reset-all-passwords': {
+        const { users } = body
+        if (!Array.isArray(users) || users.length === 0) {
+          return new Response(JSON.stringify({ error: 'Missing or empty users array' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        const results: { userId: string; success: boolean }[] = []
+        for (const u of users) {
+          if (!u.userId || typeof u.userId !== 'string' || !u.password || typeof u.password !== 'string') {
+            results.push({ userId: u.userId || 'unknown', success: false })
+            continue
+          }
+          const { error } = await adminClient.auth.admin.updateUserById(u.userId, { password: u.password })
+          results.push({ userId: u.userId, success: !error })
+          if (!error) {
+            // Fire-and-forget signout
+            fetch(`${supabaseUrl}/auth/v1/admin/users/${u.userId}`, {
+              method: 'PUT',
+              headers: {
+                apikey: serviceRoleKey,
+                Authorization: `Bearer ${serviceRoleKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ app_metadata: { force_signout: Date.now() } }),
+            }).catch(() => {})
+          }
+        }
+        const successCount = results.filter(r => r.success).length
+        await logAudit('reset-all-passwords', 'bulk', user.id, { count: successCount, total: users.length })
+        return new Response(JSON.stringify({ results, successCount }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       case 'force-signout': {
         const { userId } = body
         if (!userId || typeof userId !== 'string') {
