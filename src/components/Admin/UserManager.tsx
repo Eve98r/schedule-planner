@@ -235,15 +235,20 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
     }
 
     setCreating(true)
+
+    const results = await Promise.allSettled(
+      toCreate.map(async (u) => {
+        await apiCreateUser(u.email, u.password, u.name, 'employee')
+        return { name: u.name, email: u.email, password: u.password } as CreatedUser
+      })
+    )
+
     const created: CreatedUser[] = []
     let errors = 0
-
-    for (const u of toCreate) {
-      try {
-        await apiCreateUser(u.email, u.password, u.name, 'employee')
-        created.push({ name: u.name, email: u.email, password: u.password })
-      } catch (err) {
-        console.error(`Failed to create ${u.name}:`, err)
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        created.push(r.value)
+      } else {
         errors++
       }
     }
@@ -289,17 +294,16 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   const handleDeleteAll = async () => {
     setDeleting(true)
 
+    const usersToDelete = existingUsers.filter((u) => u.id !== currentUser.id)
+    const results = await Promise.allSettled(
+      usersToDelete.map((u) => apiDeleteUser(u.id))
+    )
+
     let deleted = 0
     let errors = 0
-
-    for (const u of existingUsers) {
-      if (u.id === currentUser.id) continue
-      try {
-        await apiDeleteUser(u.id)
-        deleted++
-      } catch {
-        errors++
-      }
+    for (const r of results) {
+      if (r.status === 'fulfilled') deleted++
+      else errors++
     }
 
     setDeleting(false)
@@ -320,20 +324,25 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   const handleResetAllPasswords = async () => {
     setResetting(true)
 
+    const usersToReset = existingUsers.filter((u) => u.id !== currentUser.id)
+    const passwords = usersToReset.map((u) => ({ ...u, newPw: generatePassword() }))
+
+    const results = await Promise.allSettled(
+      passwords.map(async (u) => {
+        await apiResetPassword(u.id, u.newPw)
+        signOutUser(u.id) // fire-and-forget
+        return { email: u.email, newPw: u.newPw }
+      })
+    )
+
     const newPasswords: Record<string, string> = {}
     let count = 0
     let errors = 0
-
-    for (const u of existingUsers) {
-      if (u.id === currentUser.id) continue
-      const newPw = generatePassword()
-      try {
-        await apiResetPassword(u.id, newPw)
-        newPasswords[u.email] = newPw
-        await signOutUser(u.id)
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        newPasswords[r.value.email] = r.value.newPw
         count++
-      } catch (err) {
-        console.error(`Failed to reset password for ${u.full_name}:`, err)
+      } else {
         errors++
       }
     }
