@@ -35,6 +35,14 @@ export async function resetPassword(userId: string, password: string) {
   return callAdminFunction({ action: 'reset-password', userId, password })
 }
 
+export async function createUsers(users: { email: string; password: string; full_name: string; role?: string }[]) {
+  return callAdminFunction({ action: 'create-users', users }) as Promise<{ results: { email: string; userId: string | null; success: boolean }[]; successCount: number }>
+}
+
+export async function deleteUsers(userIds: string[]) {
+  return callAdminFunction({ action: 'delete-users', userIds }) as Promise<{ results: { userId: string; success: boolean }[]; successCount: number }>
+}
+
 export async function resetAllPasswords(users: { userId: string; password: string }[]) {
   return callAdminFunction({ action: 'reset-all-passwords', users }) as Promise<{ results: { userId: string; success: boolean }[]; successCount: number }>
 }

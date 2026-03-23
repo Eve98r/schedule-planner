@@ -12,7 +12,7 @@ import {
 import { UserPlus, Check, X, Copy, Download, Trash2, Upload, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { supabase } from '@/lib/supabase'
-import { createUser as apiCreateUser, deleteUser as apiDeleteUser, resetPassword as apiResetPassword, resetAllPasswords as apiResetAllPasswords, forceSignout as apiForceSignout } from '@/lib/adminApi'
+import { createUser as apiCreateUser, createUsers as apiCreateUsers, deleteUser as apiDeleteUser, deleteUsers as apiDeleteUsers, resetPassword as apiResetPassword, resetAllPasswords as apiResetAllPasswords, forceSignout as apiForceSignout } from '@/lib/adminApi'
 import { toast } from 'sonner'
 import { friendlyError } from '@/lib/errorMessages'
 import * as XLSX from 'xlsx'
@@ -236,42 +236,42 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
 
     setCreating(true)
 
-    const results = await Promise.allSettled(
-      toCreate.map(async (u) => {
-        await apiCreateUser(u.email, u.password, u.name, 'employee')
-        return { name: u.name, email: u.email, password: u.password } as CreatedUser
-      })
-    )
+    try {
+      const { results, successCount } = await apiCreateUsers(
+        toCreate.map((u) => ({ email: u.email, password: u.password, full_name: u.name, role: 'employee' }))
+      )
 
-    const created: CreatedUser[] = []
-    let errors = 0
-    for (const r of results) {
-      if (r.status === 'fulfilled') {
-        created.push(r.value)
-      } else {
-        errors++
+      const created: CreatedUser[] = []
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].success) {
+          created.push({ name: toCreate[i].name, email: toCreate[i].email, password: toCreate[i].password })
+        }
       }
+      const errors = results.length - successCount
+
+      setCreatedUsers(created)
+      setShowResults(true)
+      setExistingNames((prev) => {
+        const next = new Set(prev)
+        for (const c of created) next.add(c.name)
+        return next
+      })
+
+      // Store passwords for display
+      setPasswordMap((prev) => {
+        const next = { ...prev }
+        for (const c of created) next[c.email] = c.password
+        return next
+      })
+
+      if (created.length > 0) toast.success(`Created ${created.length} users`)
+      if (errors > 0) toast.error(`${errors} users failed`)
+    } catch {
+      toast.error('Failed to create users')
     }
 
     setCreating(false)
     setShowDialog(false)
-    setCreatedUsers(created)
-    setShowResults(true)
-    setExistingNames((prev) => {
-      const next = new Set(prev)
-      for (const c of created) next.add(c.name)
-      return next
-    })
-
-    // Store passwords for display
-    setPasswordMap((prev) => {
-      const next = { ...prev }
-      for (const c of created) next[c.email] = c.password
-      return next
-    })
-
-    if (created.length > 0) toast.success(`Created ${created.length} users`)
-    if (errors > 0) toast.error(`${errors} users failed`)
     fetchUsers()
   }
 
@@ -294,22 +294,19 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   const handleDeleteAll = async () => {
     setDeleting(true)
 
-    const usersToDelete = existingUsers.filter((u) => u.id !== currentUser.id)
-    const results = await Promise.allSettled(
-      usersToDelete.map((u) => apiDeleteUser(u.id))
-    )
+    const userIds = existingUsers.filter((u) => u.id !== currentUser.id).map((u) => u.id)
 
-    let deleted = 0
-    let errors = 0
-    for (const r of results) {
-      if (r.status === 'fulfilled') deleted++
-      else errors++
+    try {
+      const { successCount, results } = await apiDeleteUsers(userIds)
+      const errors = results.length - successCount
+      if (successCount > 0) toast.success(`Deleted ${successCount} users`)
+      if (errors > 0) toast.error(`${errors} deletions failed`)
+    } catch {
+      toast.error('Failed to delete users')
     }
 
     setDeleting(false)
     setShowDeleteAll(false)
-    if (deleted > 0) toast.success(`Deleted ${deleted} users`)
-    if (errors > 0) toast.error(`${errors} deletions failed`)
     fetchUsers()
   }
 
