@@ -150,6 +150,78 @@ Deno.serve(async (req) => {
         })
       }
 
+      case 'create-users': {
+        const { users } = body
+        if (!Array.isArray(users) || users.length === 0) {
+          return new Response(JSON.stringify({ error: 'Missing or empty users array' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        const results: { email: string; userId: string | null; success: boolean }[] = []
+        for (const u of users) {
+          if (!u.email || typeof u.email !== 'string' || !u.password || typeof u.password !== 'string' || !u.full_name || typeof u.full_name !== 'string') {
+            results.push({ email: u.email || 'unknown', userId: null, success: false })
+            continue
+          }
+          const role = u.role || 'employee'
+          const { data, error } = await adminClient.auth.admin.createUser({
+            email: u.email,
+            password: u.password,
+            email_confirm: true,
+            user_metadata: { full_name: u.full_name },
+          })
+          if (error) {
+            results.push({ email: u.email, userId: null, success: false })
+            continue
+          }
+          const { error: profErr } = await adminClient.from('profiles').insert({
+            id: data.user.id,
+            email: u.email,
+            full_name: u.full_name,
+            role,
+          })
+          if (profErr) {
+            // Auth user was created but profile failed — clean up
+            await adminClient.auth.admin.deleteUser(data.user.id)
+            results.push({ email: u.email, userId: null, success: false })
+            continue
+          }
+          results.push({ email: u.email, userId: data.user.id, success: true })
+        }
+        const successCount = results.filter(r => r.success).length
+        await logAudit('create-users', 'bulk', user.id, { count: successCount, total: users.length })
+        return new Response(JSON.stringify({ results, successCount }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      case 'delete-users': {
+        const { userIds } = body
+        if (!Array.isArray(userIds) || userIds.length === 0) {
+          return new Response(JSON.stringify({ error: 'Missing or empty userIds array' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        const results: { userId: string; success: boolean }[] = []
+        for (const userId of userIds) {
+          if (!userId || typeof userId !== 'string') {
+            results.push({ userId: userId || 'unknown', success: false })
+            continue
+          }
+          await adminClient.from('shift_claims').delete().eq('claimed_by', userId)
+          await adminClient.from('profiles').delete().eq('id', userId)
+          const { error } = await adminClient.auth.admin.deleteUser(userId)
+          results.push({ userId, success: !error })
+        }
+        const successCount = results.filter(r => r.success).length
+        await logAudit('delete-users', 'bulk', user.id, { count: successCount, total: userIds.length })
+        return new Response(JSON.stringify({ results, successCount }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       case 'reset-password': {
         const { userId, password } = body
         if (!userId || typeof userId !== 'string' || !password || typeof password !== 'string') {
