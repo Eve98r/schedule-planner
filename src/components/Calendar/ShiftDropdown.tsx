@@ -22,6 +22,8 @@ interface ShiftDropdownProps {
   user1PMClaim: ShiftClaim | undefined
   claimedShiftIds: Set<string>
   monthlyLimitReached: boolean
+  shiftTypeLimitReached?: Record<string, boolean>
+  isLocked?: boolean
   dayType?: string
   isDark?: boolean
   hideClaimedBadge?: boolean
@@ -127,6 +129,8 @@ export function ShiftDropdown({
   user1PMClaim,
   claimedShiftIds,
   monthlyLimitReached,
+  shiftTypeLimitReached = {},
+  isLocked = false,
   dayType,
   isDark = false,
   hideClaimedBadge = false,
@@ -140,10 +144,18 @@ export function ShiftDropdown({
   if (hasClaim && has1PMClaim) {
     return (
       <div className="flex items-center justify-center gap-2 flex-wrap">
-        <ClaimBadge claim={userClaim} isDark={isDark} onUnclaim={onUnclaim} hideClaimedBadge={hideClaimedBadge} />
-        <ClaimBadge claim={user1PMClaim} isDark={isDark} onUnclaim={onUnclaim} hideClaimedBadge={hideClaimedBadge} />
+        <ClaimBadge claim={userClaim} isDark={isDark} onUnclaim={onUnclaim} hideClaimedBadge={hideClaimedBadge || isLocked} />
+        <ClaimBadge claim={user1PMClaim} isDark={isDark} onUnclaim={onUnclaim} hideClaimedBadge={hideClaimedBadge || isLocked} />
       </div>
     )
+  }
+
+  if (isLocked) {
+    if (hasClaim || has1PMClaim) {
+      const claim = (hasClaim ? userClaim : user1PMClaim)!
+      return <ClaimBadge claim={claim} isDark={isDark} onUnclaim={onUnclaim} hideClaimedBadge={true} />
+    }
+    return null
   }
 
   // If only one claim, show it + possibly a select for the other type
@@ -151,12 +163,21 @@ export function ShiftDropdown({
     const claim = (hasClaim ? userClaim : user1PMClaim)!
     const existingPrefix = hasClaim ? getClaimPrefix(userClaim!.id_shift_type) : null
     const allAvailable = bonusShifts.filter((s) => !claimedShiftIds.has(s.id_shift_type) && isShiftAllowedOnDay(s.id_shift_type, dayType, existingPrefix))
-    // Can still claim the other type
-    const canClaim1PM = !has1PMClaim && allAvailable.some((s) => is1PMShift(s.id_shift_type))
-    const canClaimNon1PM = !hasClaim && !monthlyLimitReached && allAvailable.some((s) => !is1PMShift(s.id_shift_type))
-    const remainingAvailable = allAvailable.filter((s) =>
-      (canClaim1PM && is1PMShift(s.id_shift_type)) || (canClaimNon1PM && !is1PMShift(s.id_shift_type))
-    )
+    // Filter by per-type limits
+    const canClaim1PM = !has1PMClaim && !shiftTypeLimitReached['1-PM'] && !shiftTypeLimitReached['1PM'] && allAvailable.some((s) => is1PMShift(s.id_shift_type))
+    const canClaimNon1PM = !hasClaim && !monthlyLimitReached && allAvailable.some((s) => {
+      if (is1PMShift(s.id_shift_type)) return false
+      const prefix = getClaimPrefix(s.id_shift_type)
+      return !shiftTypeLimitReached[prefix]
+    })
+    const remainingAvailable = allAvailable.filter((s) => {
+      if (canClaim1PM && is1PMShift(s.id_shift_type)) return true
+      if (canClaimNon1PM && !is1PMShift(s.id_shift_type)) {
+        const prefix = getClaimPrefix(s.id_shift_type)
+        return !shiftTypeLimitReached[prefix]
+      }
+      return false
+    })
 
     return (
       <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -191,15 +212,20 @@ export function ShiftDropdown({
   const available = bonusShifts.filter((s) => !claimedShiftIds.has(s.id_shift_type) && isShiftAllowedOnDay(s.id_shift_type, dayType))
   if (available.length === 0) return null
 
-  // Filter: non-1PM blocked by limit, 1PM always available
-  const claimable = available.filter((s) =>
-    is1PMShift(s.id_shift_type) || !monthlyLimitReached
-  )
+  // Filter: respect both total and per-type limits
+  const claimable = available.filter((s) => {
+    if (is1PMShift(s.id_shift_type)) {
+      return !shiftTypeLimitReached['1-PM'] && !shiftTypeLimitReached['1PM']
+    }
+    if (monthlyLimitReached) return false
+    const prefix = getClaimPrefix(s.id_shift_type)
+    return !shiftTypeLimitReached[prefix]
+  })
 
   if (claimable.length === 0) {
     return (
       <div className={`text-[10px] text-center ${isDark ? 'text-white/70' : 'text-muted-foreground'}`}>
-        Limit reached (4/4)
+        Limit reached
       </div>
     )
   }

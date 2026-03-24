@@ -22,6 +22,8 @@ import { DayCell } from './DayCell'
 import { ShiftDropdown } from './ShiftDropdown'
 import { useCalendar } from '@/hooks/useCalendar'
 import { useShiftClaims } from '@/hooks/useShiftClaims'
+import { useShiftLimits } from '@/hooks/useShiftLimits'
+import { useScheduleLock } from '@/hooks/useScheduleLock'
 import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/types'
 
@@ -107,6 +109,8 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
     getUserClaimForDate,
     getUser1PMClaimForDate,
   } = useShiftClaims(monthYear)
+  const { getEffectiveLimits, loading: limitsLoading } = useShiftLimits()
+  const { isLocked } = useScheduleLock(monthYear)
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
@@ -120,11 +124,30 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
   const user1PMCount = effectiveUserId
     ? claims.filter((c) => c.claimed_by === effectiveUserId && (c.id_shift_type.startsWith('1-PM') || c.id_shift_type.startsWith('1PM'))).length
     : 0
-  const monthlyLimitReached = userClaimsCount >= 4
+
+  // Dynamic limits
+  const limits = effectiveUserId ? getEffectiveLimits(effectiveUserId) : null
+  const totalLimit = limits?.total_bonus_limit ?? 4
+  const monthlyLimitReached = userClaimsCount >= totalLimit || isLocked
+
+  // Per-type claim counts
+  const userClaims = effectiveUserId ? claims.filter((c) => c.claimed_by === effectiveUserId) : []
+  const ebCount = userClaims.filter((c) => c.id_shift_type.startsWith('EB')).length
+  const mbCount = userClaims.filter((c) => c.id_shift_type.startsWith('MB')).length
+  const nbCount = userClaims.filter((c) => c.id_shift_type.startsWith('NB')).length
+
+  const shiftTypeLimitReached: Record<string, boolean> = {
+    EB: limits ? ebCount >= limits.eb_limit : false,
+    MB: limits ? mbCount >= limits.mb_limit : false,
+    NB: limits ? nbCount >= limits.nb_limit : false,
+    '1-PM': limits?.pm1_limit != null ? user1PMCount >= limits.pm1_limit : false,
+    '1PM': limits?.pm1_limit != null ? user1PMCount >= limits.pm1_limit : false,
+  }
+
   // Admin can manage shifts for any user who has an account
   const canManageShifts = !isViewingOther || (isAdmin && !!viewingUserId)
 
-  const loading = calLoading || claimsLoading
+  const loading = calLoading || claimsLoading || limitsLoading
 
   const noopClaim = async () => ({ error: null as unknown })
   const noopUnclaim = async () => ({ error: null as unknown })
@@ -156,7 +179,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
             {/* Claims counter as progress dots */}
             {!isBlank && (
               <div className="flex items-center justify-center gap-1.5 mt-1">
-                {Array.from({ length: 4 }).map((_, i) => (
+                {Array.from({ length: totalLimit }).map((_, i) => (
                   <div
                     key={i}
                     className={`h-1.5 w-6 rounded-full transition-colors ${
@@ -164,7 +187,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
                     }`}
                   />
                 ))}
-                <span className="text-[10px] text-muted-foreground ml-1">{userClaimsCount}/4</span>
+                <span className="text-[10px] text-muted-foreground ml-1">{userClaimsCount}/{totalLimit}</span>
               </div>
             )}
           </div>
@@ -199,7 +222,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
         {/* 1-PM count */}
         {!isBlank && user1PMCount > 0 && (
           <div className="mt-2 text-xs text-center text-muted-foreground font-medium">
-            1-PM: {user1PMCount}
+            1-PM: {user1PMCount}{limits?.pm1_limit != null ? `/${limits.pm1_limit}` : ''}
           </div>
         )}
         {isBlank && (
@@ -208,6 +231,13 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
           </div>
         )}
       </div>
+
+      {/* Lock banner */}
+      {isLocked && !isAdmin && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 font-medium text-center">
+          Schedule is currently locked. Contact your administrator for changes.
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
@@ -236,6 +266,8 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
                   user1PMClaim={effectiveUserId ? getUser1PMClaimForDate(effectiveUserId, dateStr) : undefined}
                   claimedShiftIds={claimedShiftIds}
                   monthlyLimitReached={canManageShifts ? monthlyLimitReached : true}
+                  shiftTypeLimitReached={shiftTypeLimitReached}
+                  isLocked={isLocked && !isAdmin}
                   onClaim={canManageShifts ? handleClaim : noopClaim}
                   onUnclaim={canManageShifts ? handleUnclaim : noopUnclaim}
                 />
@@ -279,6 +311,8 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
                           user1PMClaim={user1PMClaim}
                           claimedShiftIds={claimedShiftIds}
                           monthlyLimitReached={monthlyLimitReached}
+                          shiftTypeLimitReached={shiftTypeLimitReached}
+                          isLocked={isLocked && !isAdmin}
                           dayType={schedule?.day_type}
                           onClaim={handleClaim}
                           onUnclaim={handleUnclaim}

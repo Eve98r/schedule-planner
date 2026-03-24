@@ -48,6 +48,22 @@ input[type="number"] {
   background: rgba(0, 0, 0, 0.2);
 }
 
+/* Schedule grid crosshair hover (DOM-based, no React re-renders) */
+.schedule-grid .grid-hov-row {
+  box-shadow: inset 0 0 0 50px rgba(200, 184, 232, 0.12);
+}
+.schedule-grid .grid-hov-col {
+  box-shadow: inset 0 0 0 50px rgba(200, 184, 232, 0.12);
+}
+.schedule-grid .grid-hov-name {
+  background-color: #eee8f8 !important;
+  color: #1a1a3e !important;
+  font-weight: 600 !important;
+}
+.schedule-grid .grid-th.grid-hov-col {
+  background-color: #e0e0e0 !important;
+}
+
 body {
   margin: 0;
   font-family:

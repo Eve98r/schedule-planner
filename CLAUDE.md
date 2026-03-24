@@ -9,7 +9,7 @@ Employee shift scheduling app. Admins import monthly schedules and bonus shift l
 - **Frontend**: React 19, TypeScript, Vite 7, Tailwind CSS 4, Radix UI primitives
 - **Backend**: Supabase (Auth, Postgres, Realtime, RLS)
 - **Libs**: date-fns (dates), xlsx (import/export), sonner (toasts), lucide-react (icons)
-- **Routing**: react-router-dom v7 — two routes: `/calendar`, `/admin`
+- **Routing**: react-router-dom v7 — three routes: `/calendar`, `/admin`, `/master-calendar`
 - **Deploy**: GitHub Pages (`base: '/Schedule-Planner/'` in vite.config.ts)
 
 ## Commands
@@ -33,14 +33,18 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 | `bonus_shifts` | Available bonus shifts per month | date, shift_type, row_number, id_shift_type (unique), month_year |
 | `default_schedules` | Employee default schedule per month | date, employee (name string), day_type, month_year |
 | `shift_claims` | Who claimed which bonus shift | id_shift_type (FK→bonus_shifts), claimed_by (FK→profiles), date, month_year |
+| `global_shift_limits` | Global default shift limits (single config row) | eb_limit, mb_limit, nb_limit, total_bonus_limit, pm1_limit (nullable) |
+| `employee_shift_limits` | Per-employee shift limit overrides | employee_id (FK→profiles), is_custom, eb_limit, mb_limit, nb_limit, total_bonus_limit, pm1_limit |
+| `schedule_locks` | Per-month schedule lock state | month_year (unique), is_locked |
 
 **Key constraints:**
 - `shift_claims.id_shift_type` is UNIQUE (one person per shift)
 - Partial unique index `uq_one_per_day_non_1pm` on `(claimed_by, date)` for non-1-PM shifts (one non-1-PM claim per day)
 - Partial unique index `uq_one_1pm_per_day` on `(claimed_by, date)` for 1-PM shifts (one 1-PM claim per day)
 - 1-PM shifts can stack with other bonus shifts on the same day
-- DB trigger `check_monthly_claim_limit()` enforces max 4 claims/month/user, **excluding 1-PM shifts**
-- Realtime enabled on `shift_claims` table
+- DB trigger `check_monthly_claim_limit()` enforces dynamic per-type and total limits from `global_shift_limits`/`employee_shift_limits`, checks schedule lock, **excluding 1-PM shifts from total count** (1-PM has its own `pm1_limit`, null = unlimited)
+- DB trigger `check_schedule_lock_on_delete()` prevents unclaiming shifts when month is locked
+- Realtime enabled on `shift_claims` and `schedule_locks` tables
 
 **Shift compatibility rules (enforced in frontend):**
 - EB blocked on E, T day types
@@ -70,10 +74,11 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 ### Pages
 - `src/pages/LoginPage.tsx` — Email/password login form
 - `src/pages/CalendarPage.tsx` — Thin wrapper around CalendarGrid
-- `src/pages/AdminPage.tsx` — Admin-only (redirects employees). Three tabs: Data Import, Users, Assignment Overview
+- `src/pages/AdminPage.tsx` — Admin-only (redirects employees). Four tabs: Data Import, Users, Assignment Overview, Shift Limits. Per-month lock toggle in header.
+- `src/pages/MasterCalendarPage.tsx` — Admin-only master calendar wrapper
 
 ### Calendar Components
-- `src/components/Calendar/CalendarGrid.tsx` — **Main calendar view**. Month navigation, admin employee selector, renders grid of DayCells. Manages claim/unclaim logic. Uses `useCalendar` + `useShiftClaims` hooks.
+- `src/components/Calendar/CalendarGrid.tsx` — **Main calendar view**. Month navigation, admin employee selector, renders grid of DayCells. Manages claim/unclaim logic with dynamic shift limits and lock state. Uses `useCalendar` + `useShiftClaims` + `useShiftLimits` + `useScheduleLock` hooks.
 - `src/components/Calendar/DayCell.tsx` — Single day cell. Shows day type badge, bonus claim badge, claim/unclaim UI with confirmation dialogs. Handles click-to-claim (single shift) or opens picker (multiple available).
 - `src/components/Calendar/ShiftDropdown.tsx` — Dropdown select for claiming when multiple shifts available on a day. Also shows unclaim button with confirmation.
 
@@ -81,16 +86,20 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 - `src/components/Admin/ImportPanel.tsx` — Upload .xlsx/.csv for bonus shifts and default schedules. Preview before insert. Conflict detection for duplicate shift IDs across months. Clear data per month.
 - `src/components/Admin/AssignmentTable.tsx` — View all bonus shifts and claims for a month. Filter by claimed/unclaimed, search, export to XLSX, bulk unclaim all.
 - `src/components/Admin/UserManager.tsx` — Create user accounts (bulk from imported file or manual). List/search/delete users. Reset passwords (single or all). Stores passwords in localStorage. Import employee info from XLSX.
+- `src/components/Admin/ShiftLimitsManager.tsx` — Configure per-employee and global default shift limits (EB, MB, NB, Total, 1-PM). Custom toggle per employee.
+- `src/components/Admin/MasterCalendar.tsx` — Spreadsheet-style overview of all employees' shifts for a month. Color-coded cells, sticky headers, export to Excel.
 
 ### Hooks
 - `src/hooks/useAuth.ts` — Auth state, profile fetch, session refresh, sign in/out
 - `src/hooks/useCalendar.ts` — Fetches default_schedules + bonus_shifts for a month/employee
-- `src/hooks/useShiftClaims.ts` — Fetches claims, realtime subscription, claim/unclaim actions. Creates admin client when `isAdmin=true`.
+- `src/hooks/useShiftClaims.ts` — Fetches claims, realtime subscription, claim/unclaim actions.
+- `src/hooks/useShiftLimits.ts` — Fetches global and per-employee shift limits. Provides `getEffectiveLimits(employeeId)` resolver, CRUD for updating limits.
+- `src/hooks/useScheduleLock.ts` — Fetches per-month lock state with realtime subscription. Provides `isLocked` and `toggleLock()` for admins.
 
 ### Lib/Utils
 - `src/lib/supabase.ts` — Supabase client singleton (uses VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY)
 - `src/lib/parseImport.ts` — Parse .xlsx/.csv files into BonusShiftRow[] or DefaultScheduleRow[]. Handles Excel date serial numbers.
-- `src/lib/exportXlsx.ts` — Export bonus shift assignments to .xlsx
+- `src/lib/exportXlsx.ts` — Export bonus shift assignments and master calendar to .xlsx
 - `src/lib/cn.ts` — clsx + tailwind-merge utility
 - `src/lib/errorMessages.ts` — Maps Supabase/Postgres errors to user-friendly messages
 - `src/lib/adminApi.ts` — Client-side wrapper for admin Edge Function calls
@@ -99,7 +108,7 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 - `src/components/ui/` — Radix-based primitives: badge, button, card, dialog, select, tabs, MonthPicker
 
 ### Types
-- `src/types/index.ts` — Profile, BonusShift, DefaultSchedule, ShiftClaim, DayType
+- `src/types/index.ts` — Profile, BonusShift, DefaultSchedule, ShiftClaim, DayType, ShiftLimits, GlobalShiftLimits, EmployeeShiftLimit, ScheduleLock
 
 ### Config
 - `vite.config.ts` — Vite config with `@` alias, GitHub Pages base path
@@ -157,3 +166,4 @@ VITE_SUPABASE_ANON_KEY=    # Supabase anon/public key
 | 2026-03-20 | Moved toast notifications from top-right to bottom-right to avoid overlapping navbar buttons | `src/main.tsx` |
 | 2026-03-20 | Added Google OAuth for admin sign-in, blocked non-admin OAuth users, removed service role key from .env, admin shows "Google Sign-In" instead of password in Users page, hide reset password button for admins, persist admin tab in URL, fix page refresh losing current route | `useAuth.ts`, `LoginPage.tsx`, `App.tsx`, `AdminPage.tsx`, `UserManager.tsx` |
 | 2026-03-24 | 1-PM shift support: styling (dark badge on non-W, black text on W), fix invisible badge (DB uses `1-PM` not `1PM`), exempt from 4/month limit and one-per-day constraint, stackable with other bonus shifts, shift compatibility rules (EB blocked on E/T, MB on M/T, NB on N, 1-PM on N/NB/M/MB/T), 1-PM count in header, removed "Viewing schedule" text, removed accent borders, lighter day numbers, hidden shift IDs in badges, always-open claim picker dialog. DB migration `003_1pm_exempt.sql`. | `CalendarGrid.tsx`, `DayCell.tsx`, `ShiftDropdown.tsx`, `useShiftClaims.ts`, `003_1pm_exempt.sql` (new) |
+| 2026-03-24 | Per-employee shift limits (EB/MB/NB/Total/1-PM), per-month schedule lock toggle, master calendar page. New DB tables: `global_shift_limits`, `employee_shift_limits`, `schedule_locks`. Updated `check_monthly_claim_limit()` trigger for dynamic limits and lock check. New `check_schedule_lock_on_delete()` trigger. Admin "Shift Limits" tab with global defaults and per-employee overrides. Lock toggle in admin header (per-month, green/red). Employee lock banner + disabled claim/unclaim. Master calendar at `/master-calendar` with all-employees grid view, color-coded cells, sticky columns, export to Excel. | `004_shift_limits_lock.sql` (new), `types/index.ts`, `useShiftLimits.ts` (new), `useScheduleLock.ts` (new), `ShiftLimitsManager.tsx` (new), `MasterCalendar.tsx` (new), `MasterCalendarPage.tsx` (new), `AdminPage.tsx`, `CalendarGrid.tsx`, `DayCell.tsx`, `ShiftDropdown.tsx`, `Navbar.tsx`, `App.tsx`, `exportXlsx.ts`, `errorMessages.ts` |
