@@ -36,9 +36,17 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 
 **Key constraints:**
 - `shift_claims.id_shift_type` is UNIQUE (one person per shift)
-- `shift_claims(claimed_by, date)` is UNIQUE (one claim per employee per day)
-- DB trigger `check_monthly_claim_limit()` enforces max 4 claims/month/user
+- Partial unique index `uq_one_per_day_non_1pm` on `(claimed_by, date)` for non-1-PM shifts (one non-1-PM claim per day)
+- Partial unique index `uq_one_1pm_per_day` on `(claimed_by, date)` for 1-PM shifts (one 1-PM claim per day)
+- 1-PM shifts can stack with other bonus shifts on the same day
+- DB trigger `check_monthly_claim_limit()` enforces max 4 claims/month/user, **excluding 1-PM shifts**
 - Realtime enabled on `shift_claims` table
+
+**Shift compatibility rules (enforced in frontend):**
+- EB blocked on E, T day types
+- MB blocked on M, T day types
+- NB blocked on N day type
+- 1-PM blocked on N, NB, M, MB, T day types (and when existing claim is NB or MB)
 
 **RLS rules:** Employees see own profile + own schedules + all bonus shifts + all claims. Admins see everything. Only admins can insert/update/delete schedules and bonus shifts.
 
@@ -51,7 +59,7 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 
 ### Day Types
 
-`N` (Night), `M` (Morning), `E` (Evening), `T` (Training), `OFF`, `V` (Vacation), `W` (Work/available for bonus). Bonus shift types: `NB`, `MB`, `EB`, `1PM`. Color mappings defined in `CalendarGrid.tsx` and `DayCell.tsx`.
+`N` (Night), `M` (Morning), `E` (Evening), `T` (Training), `OFF`, `V` (Vacation), `W` (Work/available for bonus). Bonus shift types: `NB`, `MB`, `EB`, `1-PM`. Note: DB uses `1-PM` prefix (with hyphen). 1-PM shifts are a special category — exempt from the 4/month limit, can stack with other claims, and have distinct styling (dark badge on non-W days, black text on W days). Color mappings defined in `CalendarGrid.tsx` and `DayCell.tsx`.
 
 ## File Map
 
@@ -148,3 +156,4 @@ VITE_SUPABASE_ANON_KEY=    # Supabase anon/public key
 | 2026-03-20 | Bug/security audit fixes: LoginPage uses friendlyError instead of leaking raw errors. Edge function sanitizes all error responses and validates all input fields. Password generation uses crypto.getRandomValues with 12-char length and expanded charset. Mobile calendar list matches desktop admin shift management. parseEmployeeInfo validates file size, extension, and row count. | `LoginPage.tsx`, `admin-users/index.ts`, `UserManager.tsx`, `CalendarGrid.tsx` |
 | 2026-03-20 | Moved toast notifications from top-right to bottom-right to avoid overlapping navbar buttons | `src/main.tsx` |
 | 2026-03-20 | Added Google OAuth for admin sign-in, blocked non-admin OAuth users, removed service role key from .env, admin shows "Google Sign-In" instead of password in Users page, hide reset password button for admins, persist admin tab in URL, fix page refresh losing current route | `useAuth.ts`, `LoginPage.tsx`, `App.tsx`, `AdminPage.tsx`, `UserManager.tsx` |
+| 2026-03-24 | 1-PM shift support: styling (dark badge on non-W, black text on W), fix invisible badge (DB uses `1-PM` not `1PM`), exempt from 4/month limit and one-per-day constraint, stackable with other bonus shifts, shift compatibility rules (EB blocked on E/T, MB on M/T, NB on N, 1-PM on N/NB/M/MB/T), 1-PM count in header, removed "Viewing schedule" text, removed accent borders, lighter day numbers, hidden shift IDs in badges, always-open claim picker dialog. DB migration `003_1pm_exempt.sql`. | `CalendarGrid.tsx`, `DayCell.tsx`, `ShiftDropdown.tsx`, `useShiftClaims.ts`, `003_1pm_exempt.sql` (new) |
