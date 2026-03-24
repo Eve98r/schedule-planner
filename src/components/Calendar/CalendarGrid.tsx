@@ -9,7 +9,7 @@ import {
   subMonths,
 } from 'date-fns'
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, User } from 'lucide-react'
+import { ChevronLeft, ChevronRight, User, Lock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
   Select,
@@ -234,8 +234,9 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
 
       {/* Lock banner */}
       {isLocked && !isAdmin && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 font-medium text-center">
-          Schedule is currently locked. Contact your administrator for changes.
+        <div className="mb-4 flex items-center justify-center gap-2 px-4 py-2 text-sm" style={{ color: '#9a8fb0' }}>
+          <Lock className="h-3.5 w-3.5 shrink-0" />
+          <span>The schedule is currently locked by your manager. You'll be notified once changes are available.</span>
         </div>
       )}
 
