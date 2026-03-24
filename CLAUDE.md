@@ -125,6 +125,9 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 | Modify claim logic | `useShiftClaims.ts`, `DayCell.tsx`, `CalendarGrid.tsx` | Hook + components + possibly DB trigger in migration |
 | Admin feature | `AdminPage.tsx`, relevant Admin component | AdminPage tabs if new tab, the admin component |
 | Import/export change | `src/lib/parseImport.ts` or `src/lib/exportXlsx.ts` | Parser/exporter + ImportPanel or AssignmentTable |
+| Shift limit change | `useShiftLimits.ts`, `CalendarGrid.tsx`, `004_shift_limits_lock.sql` | Hook, trigger function, ShiftLimitsManager if UI change |
+| Schedule lock change | `useScheduleLock.ts`, `CalendarGrid.tsx`, `AdminPage.tsx` | Hook + calendar lock banner + admin toggle |
+| Overview page change | `MasterCalendar.tsx`, `src/index.css` (crosshair CSS) | Component + possibly exportXlsx if export changes |
 | Auth change | `useAuth.ts`, `src/lib/supabase.ts` | Hook, possibly LoginPage, possibly RLS policies |
 | UI component | `src/components/ui/` (check if Radix primitive exists) | Existing ui component or create new one |
 | Styling/theme | `src/index.css`, component with inline styles | CSS vars or component styles (app uses both Tailwind + inline style objects for brand colors) |
@@ -152,7 +155,7 @@ VITE_SUPABASE_ANON_KEY=    # Supabase anon/public key
 3. **Type safety**: Update `src/types/index.ts` whenever DB schema changes.
 4. **Style consistency**: Use existing dayTypeStyles/bonusPrefixStyles patterns for new shift types. Use brand colors from the Brand Colors section.
 5. **Supabase patterns**: Use the existing hook pattern (useCalendar, useShiftClaims) for new data fetching. Use service role client only for admin operations that need RLS bypass.
-6. **Migration safety**: New DB changes go in a new migration file (`supabase/migrations/002_*.sql`). Never modify `001_init.sql`.
+6. **Migration safety**: New DB changes go in a new migration file (`supabase/migrations/005_*.sql`). Never modify existing migration files.
 7. **No unnecessary files**: Prefer editing existing files. The UI components in `src/components/ui/` follow Radix patterns — extend them rather than creating alternatives.
 
 ## Changelog
