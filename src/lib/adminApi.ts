@@ -23,7 +23,7 @@ async function callAdminFunction(body: Record<string, unknown>) {
   return data
 }
 
-export async function createUser(email: string, password: string, full_name: string, role = 'employee') {
+export async function createUser(email: string, password: string, full_name: string, role = 'agent') {
   return callAdminFunction({ action: 'create-user', email, password, full_name, role })
 }
 

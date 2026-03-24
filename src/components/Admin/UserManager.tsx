@@ -128,7 +128,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   const [resetTarget, setResetTarget] = useState<ExistingUser | null>(null)
   const [userSearch, setUserSearch] = useState('')
   const [showManual, setShowManual] = useState(false)
-  const [manualForm, setManualForm] = useState({ name: '', email: '', password: '', role: 'employee' })
+  const [manualForm, setManualForm] = useState({ name: '', email: '', password: '', role: 'agent' })
   const [manualCreating, setManualCreating] = useState(false)
   // Password map — persisted in localStorage so passwords survive page reloads
   const [passwordMap, setPasswordMap] = useState<Record<string, string>>(() => {
@@ -157,12 +157,14 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
     const existing = new Set(profiles.map((p) => p.full_name))
     setEmployeeNames(allNames)
     setExistingNames(existing)
-    // Sort: current user first, then admins, then alphabetical
+    // Sort: current user first, then admins, then managers, then agents alphabetically
+    const roleOrder: Record<string, number> = { admin: 0, manager: 1, agent: 2 }
     setExistingUsers(profiles.sort((a, b) => {
       if (a.id === currentUser.id) return -1
       if (b.id === currentUser.id) return 1
-      if (a.role === 'admin' && b.role !== 'admin') return -1
-      if (a.role !== 'admin' && b.role === 'admin') return 1
+      const ra = roleOrder[a.role] ?? 3
+      const rb = roleOrder[b.role] ?? 3
+      if (ra !== rb) return ra - rb
       return a.full_name.localeCompare(b.full_name)
     }))
   }
@@ -238,7 +240,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
 
     try {
       const { results, successCount } = await apiCreateUsers(
-        toCreate.map((u) => ({ email: u.email, password: u.password, full_name: u.name, role: 'employee' }))
+        toCreate.map((u) => ({ email: u.email, password: u.password, full_name: u.name, role: 'agent' }))
       )
 
       const created: CreatedUser[] = []
@@ -383,7 +385,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
 
     setManualCreating(false)
     setShowManual(false)
-    setManualForm({ name: '', email: '', password: '', role: 'employee' })
+    setManualForm({ name: '', email: '', password: '', role: 'agent' })
     fetchUsers()
   }
 
@@ -415,7 +417,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
         </div>
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            {namesToCreate.length} employees ready to create.
+            {namesToCreate.length} agents ready to create.
             {existingNames.size > 0 && ` ${existingNames.size} already have accounts.`}
           </p>
           <div className="flex flex-wrap items-center gap-2">
@@ -428,7 +430,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
             />
             <Button variant="outline" onClick={() => employeeInfoRef.current?.click()}>
               <Upload className="mr-2 h-4 w-4" />
-              Import Employee Info
+              Import Agent Info
             </Button>
             <Button
               variant="outline"
@@ -441,7 +443,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
             <Button
               variant="outline"
               onClick={() => {
-                setManualForm({ name: '', email: '', password: generatePassword(), role: 'employee' })
+                setManualForm({ name: '', email: '', password: generatePassword(), role: 'agent' })
                 setShowManual(true)
               }}
             >
@@ -728,7 +730,8 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="employee">Employee</SelectItem>
+                  <SelectItem value="agent">Agent</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
@@ -749,7 +752,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
           <DialogHeader>
             <DialogTitle>Create User Accounts</DialogTitle>
             <DialogDescription>
-              Toggle which employees should get accounts. Passwords are randomly generated.
+              Toggle which agents should get accounts. Passwords are randomly generated.
             </DialogDescription>
           </DialogHeader>
 

@@ -51,7 +51,7 @@ interface CalendarGridProps {
 }
 
 export function CalendarGrid({ profile }: CalendarGridProps) {
-  const isAdmin = profile.role === 'admin'
+  const canManage = profile.role === 'admin' || profile.role === 'manager'
   const [currentMonth, setCurrentMonth] = useState(() => {
     const saved = localStorage.getItem('sp_calendar_month')
     return saved ? new Date(saved + '-01') : new Date()
@@ -75,7 +75,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
 
   // Fetch all employee names from default_schedules + profiles for admin
   useEffect(() => {
-    if (!isAdmin) return
+    if (!canManage) return
     const fetch = async () => {
       const [schedRes, profRes] = await Promise.all([
         supabase.from('default_schedules').select('employee'),
@@ -91,12 +91,12 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
       setProfileMap(map)
     }
     fetch()
-  }, [isAdmin])
+  }, [canManage])
 
-  const isBlank = isAdmin && selectedEmployee === '__blank__'
-  const viewingName = isBlank ? '' : (isAdmin ? selectedEmployee : profile.full_name)
+  const isBlank = canManage && selectedEmployee === '__blank__'
+  const viewingName = isBlank ? '' : (canManage ? selectedEmployee : profile.full_name)
   const viewingUserId = viewingName ? (profileMap[viewingName] ?? null) : null
-  const isViewingOther = isAdmin && viewingName !== profile.full_name
+  const isViewingOther = canManage && viewingName !== profile.full_name
 
   const { loading: calLoading, getScheduleForDate, getBonusShiftsForDate } =
     useCalendar(monthYear, viewingName)
@@ -128,7 +128,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
   // Dynamic limits
   const limits = effectiveUserId ? getEffectiveLimits(effectiveUserId) : null
   const totalLimit = limits?.total_bonus_limit ?? 4
-  const monthlyLimitReached = userClaimsCount >= totalLimit || isLocked
+  const monthlyLimitReached = userClaimsCount >= totalLimit || (isLocked && !canManage)
 
   // Per-type claim counts
   const userClaims = effectiveUserId ? claims.filter((c) => c.claimed_by === effectiveUserId) : []
@@ -145,7 +145,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
   }
 
   // Admin can manage shifts for any user who has an account
-  const canManageShifts = !isViewingOther || (isAdmin && !!viewingUserId)
+  const canManageShifts = !isViewingOther || (canManage && !!viewingUserId)
 
   const loading = calLoading || claimsLoading || limitsLoading
 
@@ -200,7 +200,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
         </div>
 
         {/* Admin user selector */}
-        {isAdmin && employeeNames.length > 0 && (
+        {canManage && employeeNames.length > 0 && (
           <div className="mt-3 flex items-center justify-center gap-2">
             <User className="h-3.5 w-3.5 text-muted-foreground" />
             <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
@@ -233,7 +233,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
       </div>
 
       {/* Lock banner */}
-      {isLocked && !isAdmin && (
+      {isLocked && !canManage && (
         <div className="mb-4 flex items-center justify-center gap-2 px-4 py-2 text-sm" style={{ color: '#9a8fb0' }}>
           <Lock className="h-3.5 w-3.5 shrink-0" />
           <span>The schedule is currently locked by your manager. You'll be notified once changes are available.</span>
@@ -268,7 +268,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
                   claimedShiftIds={claimedShiftIds}
                   monthlyLimitReached={canManageShifts ? monthlyLimitReached : true}
                   shiftTypeLimitReached={shiftTypeLimitReached}
-                  isLocked={isLocked && !isAdmin}
+                  isLocked={isLocked && !canManage}
                   onClaim={canManageShifts ? handleClaim : noopClaim}
                   onUnclaim={canManageShifts ? handleUnclaim : noopUnclaim}
                 />
@@ -313,7 +313,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
                           claimedShiftIds={claimedShiftIds}
                           monthlyLimitReached={monthlyLimitReached}
                           shiftTypeLimitReached={shiftTypeLimitReached}
-                          isLocked={isLocked && !isAdmin}
+                          isLocked={isLocked && !canManage}
                           dayType={schedule?.day_type}
                           onClaim={handleClaim}
                           onUnclaim={handleUnclaim}

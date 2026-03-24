@@ -20,7 +20,7 @@ export function useAuth() {
 
     // OAuth users must have an existing admin profile — block everyone else
     if (provider && provider !== 'email') {
-      if (!data || data.role !== 'admin') {
+      if (!data || !['admin', 'manager'].includes(data.role)) {
         await supabase.auth.signOut()
         setUser(null)
         setProfile(null)
@@ -57,9 +57,9 @@ export function useAuth() {
   }, [fetchProfile])
 
   // Periodically refresh the session (every 30s).
-  // For employees: if admin reset their password, the refresh token becomes
+  // For agents: if admin reset their password, the refresh token becomes
   // invalid and this forces them back to the login screen.
-  // For admins: keeps the JWT fresh so edge function calls don't fail.
+  // For admins/managers: keeps the JWT fresh so edge function calls don't fail.
   useEffect(() => {
     if (!session || !profile) return
     const isAdmin = profile.role === 'admin'
