@@ -28,6 +28,7 @@ interface PendingUser {
   name: string
   email: string
   password: string
+  role: string
   allowed: boolean
 }
 
@@ -209,6 +210,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
         name,
         email: employeeInfoMap[name] ?? nameToEmail(name),
         password: generatePassword(),
+        role: 'agent',
         allowed: true,
       }))
     )
@@ -240,7 +242,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
 
     try {
       const { results, successCount } = await apiCreateUsers(
-        toCreate.map((u) => ({ email: u.email, password: u.password, full_name: u.name, role: 'agent' }))
+        toCreate.map((u) => ({ email: u.email, password: u.password, full_name: u.name, role: u.role }))
       )
 
       const created: CreatedUser[] = []
@@ -773,25 +775,40 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
                   <th className="px-2 py-1 text-left">Name</th>
                   <th className="px-2 py-1 text-left">Email</th>
                   <th className="px-2 py-1 text-left">Password</th>
+                  <th className="px-2 py-1 text-left">Role</th>
                 </tr>
               </thead>
               <tbody>
                 {pendingUsers.map((u, i) => (
                   <tr
                     key={u.name}
-                    className={`border-b cursor-pointer ${!u.allowed ? 'opacity-40' : ''}`}
-                    onClick={() => toggleUser(i)}
+                    className={`border-b ${!u.allowed ? 'opacity-40' : ''}`}
                   >
-                    <td className="px-2 py-1">
+                    <td className="px-2 py-1 cursor-pointer" onClick={() => toggleUser(i)}>
                       {u.allowed ? (
                         <Check className="h-4 w-4 text-green-600" />
                       ) : (
                         <X className="h-4 w-4 text-red-500" />
                       )}
                     </td>
-                    <td className="px-2 py-1">{u.name}</td>
-                    <td className="px-2 py-1 text-muted-foreground">{u.email}</td>
-                    <td className="px-2 py-1 font-mono text-xs">{u.password}</td>
+                    <td className="px-2 py-1 cursor-pointer" onClick={() => toggleUser(i)}>{u.name}</td>
+                    <td className="px-2 py-1 text-muted-foreground cursor-pointer" onClick={() => toggleUser(i)}>{u.email}</td>
+                    <td className="px-2 py-1 font-mono text-xs cursor-pointer" onClick={() => toggleUser(i)}>{u.password}</td>
+                    <td className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                      <Select
+                        value={u.role}
+                        onValueChange={(v) => setPendingUsers((prev) => prev.map((p, j) => j === i ? { ...p, role: v } : p))}
+                      >
+                        <SelectTrigger className="h-7 w-24 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="agent">Agent</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </td>
                   </tr>
                 ))}
               </tbody>
