@@ -69,12 +69,18 @@ export function useShiftClaims(monthYear: string) {
     return claims.find((c) => c.id_shift_type === idShiftType)
   }
 
+  const is1PM = (id: string) => id.startsWith('1-PM') || id.startsWith('1PM')
+
   const getUserClaimsCount = (userId: string): number => {
-    return claims.filter((c) => c.claimed_by === userId).length
+    return claims.filter((c) => c.claimed_by === userId && !is1PM(c.id_shift_type)).length
   }
 
   const getUserClaimForDate = (userId: string, date: string): ShiftClaim | undefined => {
-    return claims.find((c) => c.claimed_by === userId && c.date === date)
+    return claims.find((c) => c.claimed_by === userId && c.date === date && !is1PM(c.id_shift_type))
+  }
+
+  const getUser1PMClaimForDate = (userId: string, date: string): ShiftClaim | undefined => {
+    return claims.find((c) => c.claimed_by === userId && c.date === date && is1PM(c.id_shift_type))
   }
 
   return {
@@ -85,5 +91,6 @@ export function useShiftClaims(monthYear: string) {
     getClaimForShift,
     getUserClaimsCount,
     getUserClaimForDate,
+    getUser1PMClaimForDate,
   }
 }

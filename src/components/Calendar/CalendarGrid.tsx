@@ -40,7 +40,8 @@ const dayTypeStyles: Record<string, { color: string; backgroundColor: string }> 
   NB:    { color: '#ffffff', backgroundColor: '#8b74bf' },
   MB:    { color: '#ffffff', backgroundColor: '#c9a033' },
   EB:    { color: '#ffffff', backgroundColor: '#4bae9e' },
-  '1PM': { color: '#7a6525', backgroundColor: '#f5f0de' },
+  '1PM':  { color: '#000000', backgroundColor: 'transparent' },
+  '1-PM': { color: '#000000', backgroundColor: 'transparent' },
 }
 
 interface CalendarGridProps {
@@ -104,6 +105,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
     unclaimShift,
     getUserClaimsCount,
     getUserClaimForDate,
+    getUser1PMClaimForDate,
   } = useShiftClaims(monthYear)
 
   const monthStart = startOfMonth(currentMonth)
@@ -115,6 +117,9 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
   const claimedShiftIds = new Set(claims.map((c) => c.id_shift_type))
   const effectiveUserId = isViewingOther ? (viewingUserId ?? '') : profile.id
   const userClaimsCount = effectiveUserId ? getUserClaimsCount(effectiveUserId) : 0
+  const user1PMCount = effectiveUserId
+    ? claims.filter((c) => c.claimed_by === effectiveUserId && (c.id_shift_type.startsWith('1-PM') || c.id_shift_type.startsWith('1PM'))).length
+    : 0
   const monthlyLimitReached = userClaimsCount >= 4
   // Admin can manage shifts for any user who has an account
   const canManageShifts = !isViewingOther || (isAdmin && !!viewingUserId)
@@ -191,11 +196,10 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
           </div>
         )}
 
-        {/* Viewing indicator */}
-        {isViewingOther && !isBlank && (
-          <div className="mt-2 text-xs text-center text-amber-600 font-medium">
-            Viewing {viewingName}'s schedule
-            {!viewingUserId && ' (no account — read-only)'}
+        {/* 1-PM count */}
+        {!isBlank && user1PMCount > 0 && (
+          <div className="mt-2 text-xs text-center text-muted-foreground font-medium">
+            1-PM: {user1PMCount}
           </div>
         )}
         {isBlank && (
@@ -229,6 +233,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
                   schedule={getScheduleForDate(day)}
                   bonusShifts={canManageShifts ? getBonusShiftsForDate(day) : []}
                   userClaim={effectiveUserId ? getUserClaimForDate(effectiveUserId, dateStr) : undefined}
+                  user1PMClaim={effectiveUserId ? getUser1PMClaimForDate(effectiveUserId, dateStr) : undefined}
                   claimedShiftIds={claimedShiftIds}
                   monthlyLimitReached={canManageShifts ? monthlyLimitReached : true}
                   onClaim={canManageShifts ? handleClaim : noopClaim}
@@ -248,6 +253,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
                 const schedule = getScheduleForDate(day)
                 const bonusShifts = canManageShifts ? getBonusShiftsForDate(day) : []
                 const userClaim = effectiveUserId ? getUserClaimForDate(effectiveUserId, dateStr) : undefined
+                const user1PMClaim = effectiveUserId ? getUser1PMClaimForDate(effectiveUserId, dateStr) : undefined
 
                 return (
                   <div
@@ -270,8 +276,10 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
                         <ShiftDropdown
                           bonusShifts={bonusShifts}
                           userClaim={userClaim}
+                          user1PMClaim={user1PMClaim}
                           claimedShiftIds={claimedShiftIds}
                           monthlyLimitReached={monthlyLimitReached}
+                          dayType={schedule?.day_type}
                           onClaim={handleClaim}
                           onUnclaim={handleUnclaim}
                         />
