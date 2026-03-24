@@ -18,9 +18,9 @@ export function useAuth() {
       .eq('id', userId)
       .single()
 
-    // OAuth users must have an existing admin profile — block everyone else
+    // OAuth users must have an existing profile — block unregistered users
     if (provider && provider !== 'email') {
-      if (!data || !['admin', 'manager'].includes(data.role)) {
+      if (!data) {
         await supabase.auth.signOut()
         setUser(null)
         setProfile(null)
