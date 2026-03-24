@@ -2,14 +2,14 @@
 
 ## Overview
 
-Employee shift scheduling app. Admins import monthly schedules and bonus shift lists; employees claim available bonus shifts (max 4/month). Built with React + Supabase, deployed to GitHub Pages.
+Agent shift scheduling app. Admins import monthly schedules and bonus shift lists; agents claim available bonus shifts. Managers help oversee scheduling with calendar/shift-limits access but no admin controls. Three roles: admin, manager, agent. Built with React + Supabase, deployed to GitHub Pages.
 
 ## Tech Stack
 
 - **Frontend**: React 19, TypeScript, Vite 7, Tailwind CSS 4, Radix UI primitives
 - **Backend**: Supabase (Auth, Postgres, Realtime, RLS)
 - **Libs**: date-fns (dates), xlsx (import/export), sonner (toasts), lucide-react (icons)
-- **Routing**: react-router-dom v7 — three routes: `/calendar`, `/admin`, `/master-calendar`
+- **Routing**: react-router-dom v7 — four routes: `/calendar`, `/admin`, `/master-calendar`, `/shift-limits`
 - **Deploy**: GitHub Pages (`base: '/Schedule-Planner/'` in vite.config.ts)
 
 ## Commands
@@ -29,7 +29,7 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 
 | Table | Purpose | Key Fields |
 |---|---|---|
-| `profiles` | User accounts (linked to auth.users) | id (uuid), email, full_name, role ('employee'/'admin') |
+| `profiles` | User accounts (linked to auth.users) | id (uuid), email, full_name, role ('agent'/'manager'/'admin') |
 | `bonus_shifts` | Available bonus shifts per month | date, shift_type, row_number, id_shift_type (unique), month_year |
 | `default_schedules` | Employee default schedule per month | date, employee (name string), day_type, month_year |
 | `shift_claims` | Who claimed which bonus shift | id_shift_type (FK→bonus_shifts), claimed_by (FK→profiles), date, month_year |
@@ -42,8 +42,8 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 - Partial unique index `uq_one_per_day_non_1pm` on `(claimed_by, date)` for non-1-PM shifts (one non-1-PM claim per day)
 - Partial unique index `uq_one_1pm_per_day` on `(claimed_by, date)` for 1-PM shifts (one 1-PM claim per day)
 - 1-PM shifts can stack with other bonus shifts on the same day
-- DB trigger `check_monthly_claim_limit()` enforces dynamic per-type and total limits from `global_shift_limits`/`employee_shift_limits`, checks schedule lock, **excluding 1-PM shifts from total count** (1-PM has its own `pm1_limit`, null = unlimited)
-- DB trigger `check_schedule_lock_on_delete()` prevents unclaiming shifts when month is locked
+- DB trigger `check_monthly_claim_limit()` enforces dynamic per-type and total limits from `global_shift_limits`/`employee_shift_limits`, checks schedule lock (agents only — admins/managers bypass lock), **excluding 1-PM shifts from total count** (1-PM has its own `pm1_limit`, null = unlimited)
+- DB trigger `check_schedule_lock_on_delete()` prevents unclaiming shifts when month is locked (agents only — admins/managers bypass lock)
 - Realtime enabled on `shift_claims` and `schedule_locks` tables
 
 **Shift compatibility rules (enforced in frontend):**
@@ -52,13 +52,14 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 - NB blocked on N day type
 - 1-PM blocked on N, NB, M, MB, T day types (and when existing claim is NB or MB)
 
-**RLS rules:** Employees see own profile + own schedules + all bonus shifts + all claims. Admins see everything. Only admins can insert/update/delete schedules and bonus shifts.
+**RLS rules:** Agents see own profile + own schedules + all bonus shifts + all claims. Managers can read all profiles/schedules, full access on claims and shift limits. Admins see everything. Only admins can insert/update/delete schedules, bonus shifts, and schedule locks. Helper function `is_admin_or_manager()` (SECURITY DEFINER) used in RLS policies.
 
 ### Auth Flow
 
-- Supabase email/password auth
-- `useAuth` hook manages session, auto-refreshes every 30s for non-admins (forces logout if password was reset), 30-min idle timeout for all users
-- Admin operations (user CRUD, password reset) go through Supabase Edge Function (`admin-users`) — service role key never leaves server
+- Supabase email/password auth for agents; Google OAuth for admins and managers
+- `useAuth` hook manages session, auto-refreshes every 30s for agents (forces logout if password was reset), 30-min idle timeout for all users
+- OAuth login only allowed for users with `admin` or `manager` role in profiles table
+- Admin operations (user CRUD, password reset) go through Supabase Edge Function (`admin-users`) — service role key never leaves server, admin-only access
 - Client calls Edge Function via `src/lib/adminApi.ts` with the user's JWT for auth
 
 ### Day Types
@@ -74,11 +75,12 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 ### Pages
 - `src/pages/LoginPage.tsx` — Email/password login form
 - `src/pages/CalendarPage.tsx` — Thin wrapper around CalendarGrid
-- `src/pages/AdminPage.tsx` — Admin-only (redirects employees). Four tabs: Data Import, Users, Assignment Overview, Shift Limits. Per-month lock toggle in header.
-- `src/pages/MasterCalendarPage.tsx` — Admin-only master calendar wrapper
+- `src/pages/AdminPage.tsx` — Admin-only (redirects non-admins). Four tabs: Data Import, Users, Assignment Overview, Shift Limits. Per-month lock toggle in header.
+- `src/pages/MasterCalendarPage.tsx` — Admin/manager-only master calendar wrapper
+- `src/pages/ShiftLimitsPage.tsx` — Standalone shift limits page for admin/manager access via navbar
 
 ### Calendar Components
-- `src/components/Calendar/CalendarGrid.tsx` — **Main calendar view**. Month navigation, admin employee selector, renders grid of DayCells. Manages claim/unclaim logic with dynamic shift limits and lock state. Uses `useCalendar` + `useShiftClaims` + `useShiftLimits` + `useScheduleLock` hooks.
+- `src/components/Calendar/CalendarGrid.tsx` — **Main calendar view**. Month navigation, admin/manager agent selector, renders grid of DayCells. Manages claim/unclaim logic with dynamic shift limits and lock state. Uses `canManage` (admin or manager) for privileged operations. Uses `useCalendar` + `useShiftClaims` + `useShiftLimits` + `useScheduleLock` hooks.
 - `src/components/Calendar/DayCell.tsx` — Single day cell. Shows day type badge, bonus claim badge, claim/unclaim UI with confirmation dialogs. Handles click-to-claim (single shift) or opens picker (multiple available).
 - `src/components/Calendar/ShiftDropdown.tsx` — Dropdown select for claiming when multiple shifts available on a day. Also shows unclaim button with confirmation.
 
@@ -108,7 +110,7 @@ Schema in `supabase/migrations/001_init.sql`. Four tables with RLS:
 - `src/components/ui/` — Radix-based primitives: badge, button, card, dialog, select, tabs, MonthPicker
 
 ### Types
-- `src/types/index.ts` — Profile, BonusShift, DefaultSchedule, ShiftClaim, DayType, ShiftLimits, GlobalShiftLimits, EmployeeShiftLimit, ScheduleLock
+- `src/types/index.ts` — Profile (role: 'agent'|'manager'|'admin'), BonusShift, DefaultSchedule, ShiftClaim, DayType, ShiftLimits, GlobalShiftLimits, EmployeeShiftLimit, ScheduleLock
 
 ### Config
 - `vite.config.ts` — Vite config with `@` alias, GitHub Pages base path
@@ -155,7 +157,7 @@ VITE_SUPABASE_ANON_KEY=    # Supabase anon/public key
 3. **Type safety**: Update `src/types/index.ts` whenever DB schema changes.
 4. **Style consistency**: Use existing dayTypeStyles/bonusPrefixStyles patterns for new shift types. Use brand colors from the Brand Colors section.
 5. **Supabase patterns**: Use the existing hook pattern (useCalendar, useShiftClaims) for new data fetching. Use service role client only for admin operations that need RLS bypass.
-6. **Migration safety**: New DB changes go in a new migration file (`supabase/migrations/005_*.sql`). Never modify existing migration files.
+6. **Migration safety**: New DB changes go in a new migration file (`supabase/migrations/007_*.sql`). Never modify existing migration files.
 7. **No unnecessary files**: Prefer editing existing files. The UI components in `src/components/ui/` follow Radix patterns — extend them rather than creating alternatives.
 
 ## Changelog
@@ -171,3 +173,4 @@ VITE_SUPABASE_ANON_KEY=    # Supabase anon/public key
 | 2026-03-24 | 1-PM shift support: styling (dark badge on non-W, black text on W), fix invisible badge (DB uses `1-PM` not `1PM`), exempt from 4/month limit and one-per-day constraint, stackable with other bonus shifts, shift compatibility rules (EB blocked on E/T, MB on M/T, NB on N, 1-PM on N/NB/M/MB/T), 1-PM count in header, removed "Viewing schedule" text, removed accent borders, lighter day numbers, hidden shift IDs in badges, always-open claim picker dialog. DB migration `003_1pm_exempt.sql`. | `CalendarGrid.tsx`, `DayCell.tsx`, `ShiftDropdown.tsx`, `useShiftClaims.ts`, `003_1pm_exempt.sql` (new) |
 | 2026-03-24 | Per-employee shift limits (EB/MB/NB/Total/1-PM), per-month schedule lock toggle, master calendar page. New DB tables: `global_shift_limits`, `employee_shift_limits`, `schedule_locks`. Updated `check_monthly_claim_limit()` trigger for dynamic limits and lock check. New `check_schedule_lock_on_delete()` trigger. Admin "Shift Limits" tab with global defaults and per-employee overrides. Lock toggle in admin header (per-month, green/red). Employee lock banner + disabled claim/unclaim. Master calendar at `/master-calendar` with all-employees grid view, color-coded cells, sticky columns, export to Excel. | `004_shift_limits_lock.sql` (new), `types/index.ts`, `useShiftLimits.ts` (new), `useScheduleLock.ts` (new), `ShiftLimitsManager.tsx` (new), `MasterCalendar.tsx` (new), `MasterCalendarPage.tsx` (new), `AdminPage.tsx`, `CalendarGrid.tsx`, `DayCell.tsx`, `ShiftDropdown.tsx`, `Navbar.tsx`, `App.tsx`, `exportXlsx.ts`, `errorMessages.ts` |
 | 2026-03-24 | Fix schedule lock, shift limits, and employee limits tables returning 403. Added missing GRANT permissions for `authenticated` role on `schedule_locks`, `global_shift_limits`, and `employee_shift_limits` tables (Supabase no longer auto-grants on new tables). | `005_grant_table_permissions.sql` (new) |
+| 2026-03-24 | Renamed 'employee' role to 'agent', added 'manager' role. Manager: Google OAuth, full calendar/master-calendar/shift-limits access, can edit calendars on locked months, NO admin panel/import/users/lock toggle. DB migration updates CHECK constraint, RLS policies (helper `is_admin_or_manager()`), triggers skip lock for admin/manager. New standalone `/shift-limits` route for managers. Navbar shows role-appropriate buttons. CalendarGrid uses `canManage` flag. UI labels: Employee→Agent in UserManager, MasterCalendar, exports. | `006_manager_role_rename.sql` (new), `ShiftLimitsPage.tsx` (new), `types/index.ts`, `admin-users/index.ts`, `adminApi.ts`, `useAuth.ts`, `App.tsx`, `Navbar.tsx`, `CalendarGrid.tsx`, `MasterCalendarPage.tsx`, `ShiftLimitsManager.tsx`, `UserManager.tsx`, `MasterCalendar.tsx`, `exportXlsx.ts`, `CLAUDE.md` |

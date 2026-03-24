@@ -409,7 +409,7 @@ export function MasterCalendar() {
             <thead className="sticky top-0 z-30" style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.08), inset 0 2px 4px rgba(0,0,0,0.04)' }}>
               <tr>
                 <th className="sticky left-0 z-30 border-y-2 border-border/30 border-r border-border/15 px-3 py-2 text-left text-[11px] font-semibold text-foreground/70" style={{ minWidth: 140, backgroundColor: '#eeeeee' }}>
-                  Employee
+                  Agent
                 </th>
                 {days.map((day, colIdx) => {
                   const dow = getDay(day)

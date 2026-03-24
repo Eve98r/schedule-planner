@@ -82,15 +82,15 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'create-user': {
-        const { email, password, full_name, role = 'employee' } = body
+        const { email, password, full_name, role = 'agent' } = body
         if (!email || typeof email !== 'string' || !password || typeof password !== 'string' || !full_name || typeof full_name !== 'string') {
           return new Response(JSON.stringify({ error: 'Missing required fields: email, password, full_name' }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
         }
-        if (!['employee', 'admin'].includes(role)) {
-          return new Response(JSON.stringify({ error: 'Invalid role. Must be "employee" or "admin".' }), {
+        if (!['agent', 'manager', 'admin'].includes(role)) {
+          return new Response(JSON.stringify({ error: 'Invalid role. Must be "agent", "manager", or "admin".' }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
             results.push({ email: u.email || 'unknown', userId: null, success: false })
             continue
           }
-          const role = u.role || 'employee'
+          const role = u.role || 'agent'
           const { data, error } = await adminClient.auth.admin.createUser({
             email: u.email,
             password: u.password,

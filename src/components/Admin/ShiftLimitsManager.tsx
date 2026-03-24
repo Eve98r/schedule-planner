@@ -42,7 +42,7 @@ export function ShiftLimitsManager() {
       const { data } = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'employee')
+        .eq('role', 'agent')
         .order('full_name')
       setEmployees(data ?? [])
     }

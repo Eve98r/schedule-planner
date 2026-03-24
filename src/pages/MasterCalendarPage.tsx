@@ -7,7 +7,7 @@ interface MasterCalendarPageProps {
 }
 
 export function MasterCalendarPage({ profile }: MasterCalendarPageProps) {
-  if (profile.role !== 'admin') {
+  if (profile.role !== 'admin' && profile.role !== 'manager') {
     return <Navigate to="/calendar" replace />
   }
 

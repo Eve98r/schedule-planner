@@ -71,7 +71,7 @@ export function exportMasterCalendar(
   monthYear: string
 ) {
   // Build array of arrays: first row = header with day-of-week, second row = day numbers
-  const headerRow1 = ['Employee', ...days.map((d) => formatDate(d, 'EEE'))]
+  const headerRow1 = ['Agent', ...days.map((d) => formatDate(d, 'EEE'))]
   const headerRow2 = ['', ...days.map((d) => formatDate(d, 'd'))]
 
   const dataRows = employeeNames.map((name) => {

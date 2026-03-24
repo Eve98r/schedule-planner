@@ -5,6 +5,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { CalendarPage } from '@/pages/CalendarPage'
 import { AdminPage } from '@/pages/AdminPage'
 import { MasterCalendarPage } from '@/pages/MasterCalendarPage'
+import { ShiftLimitsPage } from '@/pages/ShiftLimitsPage'
 
 function App() {
   const { profile, loading, signIn, signInWithGoogle, signOut } = useAuth()
@@ -33,6 +34,7 @@ function App() {
           <Route path="/calendar" element={<CalendarPage profile={profile} />} />
           <Route path="/admin" element={<AdminPage profile={profile} />} />
           <Route path="/master-calendar" element={<MasterCalendarPage profile={profile} />} />
+          <Route path="/shift-limits" element={<ShiftLimitsPage profile={profile} />} />
           <Route path="*" element={<Navigate to="/calendar" replace />} />
         </Routes>
       </div>
