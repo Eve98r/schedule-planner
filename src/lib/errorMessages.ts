@@ -6,7 +6,7 @@
 const ERROR_MAP: Array<{ pattern: RegExp; message: string }> = [
   { pattern: /duplicate key.*shift_claims_id_shift_type/, message: 'This shift has already been claimed.' },
   { pattern: /duplicate key.*shift_claims_claimed_by_date/, message: 'You already have a claim on this date.' },
-  { pattern: /Schedule is currently locked/i, message: 'Schedule is currently locked. Contact your administrator for changes.' },
+  { pattern: /Schedule is currently locked/i, message: 'The schedule is currently locked by your manager. You\'ll be notified once changes are available.' },
   { pattern: /reached your EB shift limit/i, message: 'You have reached your EB shift limit for this month.' },
   { pattern: /reached your MB shift limit/i, message: 'You have reached your MB shift limit for this month.' },
   { pattern: /reached your NB shift limit/i, message: 'You have reached your NB shift limit for this month.' },
