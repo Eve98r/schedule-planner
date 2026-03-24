@@ -259,50 +259,10 @@ Deno.serve(async (req) => {
           }
           const { error } = await adminClient.auth.admin.updateUserById(u.userId, { password: u.password })
           results.push({ userId: u.userId, success: !error })
-          if (!error) {
-            // Fire-and-forget signout
-            fetch(`${supabaseUrl}/auth/v1/admin/users/${u.userId}`, {
-              method: 'PUT',
-              headers: {
-                apikey: serviceRoleKey,
-                Authorization: `Bearer ${serviceRoleKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ app_metadata: { force_signout: Date.now() } }),
-            }).catch(() => {})
-          }
         }
         const successCount = results.filter(r => r.success).length
         await logAudit('reset-all-passwords', 'bulk', user.id, { count: successCount, total: users.length })
         return new Response(JSON.stringify({ results, successCount }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-
-      case 'force-signout': {
-        const { userId } = body
-        if (!userId || typeof userId !== 'string') {
-          return new Response(JSON.stringify({ error: 'Missing or invalid userId' }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
-        // Delete MFA factors to invalidate sessions
-        await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}/factors`, {
-          method: 'DELETE',
-          headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` },
-        }).catch(() => {})
-        // Force token refresh by updating app_metadata
-        await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
-          method: 'PUT',
-          headers: {
-            apikey: serviceRoleKey,
-            Authorization: `Bearer ${serviceRoleKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ app_metadata: { force_signout: Date.now() } }),
-        }).catch(() => {})
-        return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }

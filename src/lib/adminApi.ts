@@ -46,7 +46,3 @@ export async function deleteUsers(userIds: string[]) {
 export async function resetAllPasswords(users: { userId: string; password: string }[]) {
   return callAdminFunction({ action: 'reset-all-passwords', users }) as Promise<{ results: { userId: string; success: boolean }[]; successCount: number }>
 }
-
-export async function forceSignout(userId: string) {
-  return callAdminFunction({ action: 'force-signout', userId })
-}
