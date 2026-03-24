@@ -4,6 +4,7 @@ import { Navbar } from '@/components/Layout/Navbar'
 import { LoginPage } from '@/pages/LoginPage'
 import { CalendarPage } from '@/pages/CalendarPage'
 import { AdminPage } from '@/pages/AdminPage'
+import { MasterCalendarPage } from '@/pages/MasterCalendarPage'
 
 function App() {
   const { profile, loading, signIn, signInWithGoogle, signOut } = useAuth()
@@ -31,6 +32,7 @@ function App() {
         <Routes>
           <Route path="/calendar" element={<CalendarPage profile={profile} />} />
           <Route path="/admin" element={<AdminPage profile={profile} />} />
+          <Route path="/master-calendar" element={<MasterCalendarPage profile={profile} />} />
           <Route path="*" element={<Navigate to="/calendar" replace />} />
         </Routes>
       </div>

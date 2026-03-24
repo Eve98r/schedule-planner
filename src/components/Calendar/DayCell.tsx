@@ -85,6 +85,8 @@ interface DayCellProps {
   user1PMClaim: ShiftClaim | undefined     // 1-PM claim
   claimedShiftIds: Set<string>
   monthlyLimitReached: boolean
+  shiftTypeLimitReached?: Record<string, boolean>
+  isLocked?: boolean
   onClaim: (idShiftType: string, date: string) => Promise<{ error: unknown }>
   onUnclaim: (idShiftType: string) => Promise<{ error: unknown }>
 }
@@ -98,6 +100,8 @@ export function DayCell({
   user1PMClaim,
   claimedShiftIds,
   monthlyLimitReached,
+  shiftTypeLimitReached = {},
+  isLocked = false,
   onClaim,
   onUnclaim,
 }: DayCellProps) {
@@ -114,15 +118,17 @@ export function DayCell({
   const claimStyle = claimPrefix ? bonusPrefixStyles[claimPrefix] : null
   const isWReplaced = hasClaim && dayType === 'W'
 
-  // Available shifts: exclude already-claimed ones
-  // For non-1PM: can claim if no non-1PM claim exists and limit not reached
-  // For 1PM: can claim if no 1PM claim exists (no limit check)
+  // Available shifts: exclude already-claimed ones and per-type limit reached
   const allAvailable = bonusShifts.filter((s) => !claimedShiftIds.has(s.id_shift_type) && isShiftAllowedOnDay(s.id_shift_type, dayType, claimPrefix))
-  const available1PM = allAvailable.filter((s) => is1PMShift(s.id_shift_type))
-  const availableNon1PM = allAvailable.filter((s) => !is1PMShift(s.id_shift_type))
+  const available1PM = allAvailable.filter((s) => is1PMShift(s.id_shift_type) && !shiftTypeLimitReached['1-PM'] && !shiftTypeLimitReached['1PM'])
+  const availableNon1PM = allAvailable.filter((s) => {
+    if (is1PMShift(s.id_shift_type)) return false
+    const prefix = getClaimPrefix(s.id_shift_type)
+    return !shiftTypeLimitReached[prefix]
+  })
 
-  const canClaimNon1PM = !hasClaim && availableNon1PM.length > 0 && !monthlyLimitReached && inMonth
-  const canClaim1PM = !has1PMClaim && available1PM.length > 0 && inMonth
+  const canClaimNon1PM = !isLocked && !hasClaim && availableNon1PM.length > 0 && !monthlyLimitReached && inMonth
+  const canClaim1PM = !isLocked && !has1PMClaim && available1PM.length > 0 && inMonth
   const canClaim = canClaimNon1PM || canClaim1PM
 
   // What shifts to show in the picker
@@ -226,8 +232,8 @@ export function DayCell({
           )}
         </div>
 
-        {/* Unclaim buttons at bottom */}
-        {(hasClaim || has1PMClaim) && inMonth && (
+        {/* Unclaim buttons at bottom (hidden when locked) */}
+        {!isLocked && (hasClaim || has1PMClaim) && inMonth && (
           <div className="flex justify-center gap-1">
             {hasClaim && (
               <button

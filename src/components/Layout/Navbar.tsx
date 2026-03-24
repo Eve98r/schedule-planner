@@ -39,15 +39,26 @@ export function Navbar({ profile, onSignOut }: NavbarProps) {
           <>
             <span className="text-sm" style={{ color: '#e8e0f0' }}>{profile.full_name}</span>
             {profile.role === 'admin' && (
-              <Link to="/admin">
-                <Button
-                  size="sm"
-                  className="font-semibold hover:opacity-90"
-                  style={{ backgroundColor: 'rgba(232, 224, 240, 0.15)', color: '#e8e0f0', border: '1px solid rgba(232, 224, 240, 0.3)' }}
-                >
-                  Admin
-                </Button>
-              </Link>
+              <>
+                <Link to="/master-calendar">
+                  <Button
+                    size="sm"
+                    className="font-semibold hover:opacity-90"
+                    style={{ backgroundColor: 'rgba(232, 224, 240, 0.15)', color: '#e8e0f0', border: '1px solid rgba(232, 224, 240, 0.3)' }}
+                  >
+                    Overview
+                  </Button>
+                </Link>
+                <Link to="/admin">
+                  <Button
+                    size="sm"
+                    className="font-semibold hover:opacity-90"
+                    style={{ backgroundColor: 'rgba(232, 224, 240, 0.15)', color: '#e8e0f0', border: '1px solid rgba(232, 224, 240, 0.3)' }}
+                  >
+                    Admin
+                  </Button>
+                </Link>
+              </>
             )}
             <button
               className="text-sm px-3 py-1 rounded-md border transition-colors"
