@@ -201,11 +201,6 @@ export function MasterCalendar() {
   }, [days, employeeNames, scheduleMap])
 
 
-  const maxCoverage = useMemo(() => {
-    let max = 1
-    for (const d of Object.keys(dailyCoverage)) for (const t of COVERAGE_TYPES) max = Math.max(max, (dailyCoverage[d][t] ?? []).length)
-    return max
-  }, [dailyCoverage])
 
 
   const prev = () => setCurrentMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))
@@ -309,8 +304,6 @@ export function MasterCalendar() {
         <div className="flex overflow-x-auto">
           {days.map((day) => {
             const dateStr = format(day, 'yyyy-MM-dd')
-            const dow = getDay(day)
-            const isWeekend = dow === 0 || dow === 6
             const isSel = selectedDay === dateStr
             const cov = dailyCoverage[dateStr] ?? {}
 
@@ -448,8 +441,6 @@ export function MasterCalendar() {
                     </td>
                     {days.map((day, colIdx) => {
                       const dateStr = format(day, 'yyyy-MM-dd')
-                      const dow = getDay(day)
-                      const isWeekend = dow === 0 || dow === 6
                       const dayType = scheduleMap[`${name}|${dateStr}`]
                       const ids = claimMap[`${name}|${dateStr}`] ?? []
                       const non1PM = ids.filter((id) => !is1PM(id))

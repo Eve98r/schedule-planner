@@ -38,10 +38,6 @@ export function exportAssignments(
   XLSX.writeFile(wb, `bonus-assignments-${monthYear}.xlsx`)
 }
 
-// Color hex -> XLSX fill color (strip leading #)
-function hexToArgb(hex: string): string {
-  return 'FF' + hex.replace('#', '')
-}
 
 const masterColors: Record<string, { fg: string; bg: string }> = {
   N:     { fg: '5b4a80', bg: 'eee9f5' },
