@@ -298,7 +298,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   const handleDeleteAll = async () => {
     setDeleting(true)
 
-    const userIds = existingUsers.filter((u) => u.id !== currentUser.id).map((u) => u.id)
+    const userIds = existingUsers.filter((u) => u.role === 'agent').map((u) => u.id)
 
     try {
       const { successCount, results } = await apiDeleteUsers(userIds)
@@ -487,7 +487,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
               onClick={() => setShowDeleteAll(true)}
             >
               <Trash2 className="mr-1 h-3 w-3" />
-              Delete All
+              Delete All Agents
             </Button>
           </div>
           </div>
@@ -572,13 +572,15 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
                           >
                             <RefreshCw className="h-3 w-3" />
                           </button>
-                          {!isMe && (
+                          {!isMe ? (
                             <button
                               className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground/40 hover:text-destructive transition-colors"
                               onClick={() => setDeleteTarget(u)}
                             >
                               <Trash2 className="h-3 w-3" />
                             </button>
+                          ) : (
+                            <span className="h-6 w-6" />
                           )}
                         </td>
                       </tr>
@@ -615,15 +617,15 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
       <Dialog open={showDeleteAll} onOpenChange={setShowDeleteAll}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete All Users</DialogTitle>
+            <DialogTitle>Delete All Agents</DialogTitle>
             <DialogDescription>
-              This will permanently delete all {existingUsers.length - 1} users except your own admin account. Are you sure?
+              This will permanently delete all {existingUsers.filter((u) => u.role === 'agent').length} agent accounts. Admin and manager accounts will not be affected. Are you sure?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteAll(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDeleteAll} disabled={deleting}>
-              {deleting ? 'Deleting...' : 'Delete All Users'}
+              {deleting ? 'Deleting...' : 'Delete All Agents'}
             </Button>
           </DialogFooter>
         </DialogContent>
