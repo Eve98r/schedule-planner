@@ -13,7 +13,6 @@ export function ShiftLimitsManager() {
     loading,
     updateGlobalLimits,
     upsertEmployeeLimit,
-    refetch,
   } = useShiftLimits()
 
   const [employees, setEmployees] = useState<Profile[]>([])

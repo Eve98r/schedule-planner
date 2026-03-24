@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { Lock, Unlock } from 'lucide-react'
