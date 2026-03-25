@@ -131,25 +131,25 @@ export function ShiftLimitsManager() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Fixed top section */}
-      <div className="shrink-0 space-y-4">
+    <div className="flex flex-col h-full overflow-auto sm:overflow-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+      {/* Top section — scrolls with content on mobile, fixed on desktop */}
+      <div className="sm:shrink-0 space-y-4">
         {/* Month Picker */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <MonthPicker value={selectedMonth} onChange={handleMonthChange} />
           <span className="text-xs text-muted-foreground">Select the month to configure the limits below</span>
         </div>
 
         {/* Monthly Defaults */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Monthly Default Limits</CardTitle>
+          <CardHeader className="px-4 py-2 sm:pb-2">
+            <CardTitle className="text-sm">Monthly Default Limits</CardTitle>
             <p className="text-xs text-muted-foreground">
-              These limits apply to all agents for the selected month unless they have custom overrides.
+              These limits apply to all agents unless they have custom overrides.
             </p>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-6 gap-4 items-end">
+          <CardContent className="px-4 pb-3 pt-0">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3 items-end sm:max-w-[660px]">
               <GlobalLimitField label="EB" value={monthDraft.eb_limit} onChange={(v) => setMonthDraft((d) => ({ ...d, eb_limit: v }))} />
               <GlobalLimitField label="MB" value={monthDraft.mb_limit} onChange={(v) => setMonthDraft((d) => ({ ...d, mb_limit: v }))} />
               <GlobalLimitField label="NB" value={monthDraft.nb_limit} onChange={(v) => setMonthDraft((d) => ({ ...d, nb_limit: v }))} />
@@ -158,7 +158,7 @@ export function ShiftLimitsManager() {
                 <input
                   type="number"
                   min={0}
-                  className="h-9 w-full rounded-md border border-input px-2.5 text-sm"
+                  className="h-7 sm:h-8 w-full rounded-md border border-input px-2 text-xs"
                   value={monthDraft.total_bonus_limit}
                   onChange={(e) => setMonthDraft((d) => ({ ...d, total_bonus_limit: parseInt(e.target.value) || 0 }))}
                 />
@@ -168,7 +168,7 @@ export function ShiftLimitsManager() {
                 <button
                   onClick={handleSaveMonthly}
                   disabled={saving === 'monthly' || (!isDirty && !applied)}
-                  className={`h-9 w-full rounded-md px-3 text-sm font-medium transition-all duration-500 ${
+                  className={`h-7 sm:h-8 w-full rounded-md px-2 text-xs font-medium transition-all duration-500 ${
                     applied
                       ? 'bg-emerald-600 text-white'
                       : isDirty
@@ -190,42 +190,43 @@ export function ShiftLimitsManager() {
             Enable "Custom" to override monthly defaults for specific agents.
           </p>
         </div>
-
-        {/* Table header (frozen) */}
-        {agents.length > 0 && (
-          <div className="border-b border-border/30 bg-gradient-to-b from-[#f0ede9] to-[#e6e3de] shadow-[0_1px_2px_rgba(0,0,0,0.06)] rounded-t-md overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
-          <table className="w-full text-sm table-fixed">
-            <colgroup>
-              <col />
-              <col style={{ width: '80px' }} />
-              <col style={{ width: '80px' }} />
-              <col style={{ width: '80px' }} />
-              <col style={{ width: '80px' }} />
-              <col style={{ width: '80px' }} />
-              <col style={{ width: '80px' }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th className="py-2.5 pl-3 pr-3 text-left text-sm font-medium text-muted-foreground/80">Agent</th>
-                <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">Custom</th>
-                <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">EB</th>
-                <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">MB</th>
-                <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">NB</th>
-                <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">Total</th>
-                <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">1-PM</th>
-              </tr>
-            </thead>
-          </table>
-          </div>
-        )}
       </div>
 
-      {/* Scrollable agent rows */}
-      <div className="flex-1 overflow-auto min-h-0" style={{ scrollbarGutter: 'stable' }}>
+      {/* Desktop: separate header + scrollable body. Mobile: single scrollable table */}
+      {/* Desktop header (hidden on mobile) */}
+      {agents.length > 0 && (
+        <div className="hidden sm:block shrink-0 border-b border-border/30 bg-gradient-to-b from-[#f0ede9] to-[#e6e3de] shadow-[0_1px_2px_rgba(0,0,0,0.06)] rounded-t-md overflow-x-auto" style={{ scrollbarGutter: 'stable' }}>
+        <table className="w-full min-w-[640px] text-sm table-fixed">
+          <colgroup>
+            <col />
+            <col style={{ width: '80px' }} />
+            <col style={{ width: '80px' }} />
+            <col style={{ width: '80px' }} />
+            <col style={{ width: '80px' }} />
+            <col style={{ width: '80px' }} />
+            <col style={{ width: '80px' }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th className="py-2.5 pl-3 pr-3 text-left text-sm font-medium text-muted-foreground/80">Agent</th>
+              <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">Custom</th>
+              <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">EB</th>
+              <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">MB</th>
+              <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">NB</th>
+              <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">Total</th>
+              <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">1-PM</th>
+            </tr>
+          </thead>
+        </table>
+        </div>
+      )}
+
+      {/* Agent rows */}
+      <div className="sm:flex-1 sm:overflow-auto sm:min-h-0" style={{ scrollbarGutter: 'stable' }}>
         {agents.length === 0 ? (
           <p className="text-sm text-muted-foreground">No agent accounts found.</p>
         ) : (
-          <table className="w-full text-sm table-fixed">
+          <table className="w-full min-w-[640px] text-sm table-fixed">
             <colgroup>
               <col />
               <col style={{ width: '80px' }} />
@@ -235,6 +236,18 @@ export function ShiftLimitsManager() {
               <col style={{ width: '80px' }} />
               <col style={{ width: '80px' }} />
             </colgroup>
+                {/* Mobile sticky header inside the same table */}
+                <thead className="sm:hidden sticky top-0 z-10">
+                  <tr className="bg-gradient-to-b from-[#f0ede9] to-[#e6e3de] border-b border-border/30 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+                    <th className="py-2 pl-3 pr-3 text-left text-sm font-medium text-muted-foreground/80">Agent</th>
+                    <th className="py-2 px-2 text-center text-sm font-medium text-muted-foreground/80">Custom</th>
+                    <th className="py-2 px-2 text-center text-sm font-medium text-muted-foreground/80">EB</th>
+                    <th className="py-2 px-2 text-center text-sm font-medium text-muted-foreground/80">MB</th>
+                    <th className="py-2 px-2 text-center text-sm font-medium text-muted-foreground/80">NB</th>
+                    <th className="py-2 px-2 text-center text-sm font-medium text-muted-foreground/80">Total</th>
+                    <th className="py-2 px-2 text-center text-sm font-medium text-muted-foreground/80">1-PM</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {agents.map((agent, idx) => {
                     const agentLimit = getAgentLimit(agent.id)
@@ -297,10 +310,10 @@ function GlobalLimitField({ label, value, onChange }: { label: string; value: nu
   return (
     <div>
       <label className="text-xs font-medium text-muted-foreground block mb-1.5">{label}</label>
-      <div className="flex h-9 rounded-md border border-input overflow-hidden">
+      <div className="flex h-7 sm:h-8 rounded-md border border-input overflow-hidden">
         <button
           onClick={() => onChange(null)}
-          className={`flex-1 px-2 text-xs font-medium transition-colors ${
+          className={`flex-1 px-1.5 text-xs font-medium transition-colors ${
             isUnlimited
               ? 'bg-[#1a1a3e] text-white'
               : 'bg-white text-muted-foreground hover:bg-muted/50'
@@ -312,7 +325,7 @@ function GlobalLimitField({ label, value, onChange }: { label: string; value: nu
         {isUnlimited ? (
           <button
             onClick={() => onChange(0)}
-            className="flex-1 px-2 text-xs text-muted-foreground bg-white hover:bg-muted/50 transition-colors"
+            className="flex-1 px-1.5 text-xs text-muted-foreground bg-white hover:bg-muted/50 transition-colors"
           >
             #
           </button>
@@ -320,7 +333,7 @@ function GlobalLimitField({ label, value, onChange }: { label: string; value: nu
           <input
             type="number"
             min={0}
-            className="w-12 flex-1 text-center text-sm border-0 outline-none focus:ring-0 px-1"
+            className="w-10 flex-1 text-center text-xs border-0 outline-none focus:ring-0 px-1"
             value={value}
             onChange={(e) => onChange(parseInt(e.target.value) || 0)}
           />

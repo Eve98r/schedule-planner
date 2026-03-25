@@ -299,7 +299,7 @@ export function ImportPanel() {
       {/* Clear Month Data */}
       <div className="pt-4 space-y-3">
         <p className="text-xs text-muted-foreground">Select a month to clear its imported data</p>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           <MonthPicker value={clearMonth} onChange={setClearMonth} />
           <div className="flex flex-wrap gap-2">
             <Button

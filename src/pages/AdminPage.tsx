@@ -38,10 +38,10 @@ export function AdminPage({ profile }: AdminPageProps) {
   }
 
   return (
-    <div className="mx-auto flex h-full max-w-5xl flex-col px-4 py-4">
-      <div className="mb-4 flex items-center justify-between shrink-0">
-        <h1 className="text-2xl font-semibold">Admin Panel</h1>
-        <div className="flex items-center gap-2">
+    <div className="mx-auto flex h-full max-w-5xl flex-col px-3 py-3 sm:px-4 sm:py-4">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between shrink-0">
+        <h1 className="text-xl sm:text-2xl font-semibold">Admin Panel</h1>
+        <div className="flex items-center gap-2 flex-wrap">
           <MonthPicker value={lockMonth} onChange={setLockMonth} />
           <Button
             size="sm"
@@ -59,11 +59,11 @@ export function AdminPage({ profile }: AdminPageProps) {
         </div>
       </div>
       <Tabs value={activeTab} onValueChange={(v) => setSearchParams({ tab: v }, { replace: true })} className="flex flex-1 flex-col overflow-hidden">
-        <TabsList className="shrink-0 -ml-3">
-          <TabsTrigger value="import">Data Import</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="assignments">Assignment Overview</TabsTrigger>
-          <TabsTrigger value="limits">Limits</TabsTrigger>
+        <TabsList className="shrink-0 -ml-3 overflow-x-auto">
+          <TabsTrigger value="import" className="text-xs sm:text-sm">Data Import</TabsTrigger>
+          <TabsTrigger value="users" className="text-xs sm:text-sm">Users</TabsTrigger>
+          <TabsTrigger value="assignments" className="text-xs sm:text-sm">Assignments</TabsTrigger>
+          <TabsTrigger value="limits" className="text-xs sm:text-sm">Limits</TabsTrigger>
         </TabsList>
         <TabsContent value="import" className="flex-1 overflow-auto data-[state=inactive]:hidden" forceMount>
           <ImportPanel />

@@ -116,7 +116,7 @@ export function AssignmentTable() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search ID Shift Type or Claimed By..."
-          className="flex h-9 flex-1 min-w-[200px] rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="flex h-9 w-full sm:w-auto flex-1 min-w-0 sm:min-w-[200px] rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
         <div className="flex gap-1">
           <Button
@@ -161,8 +161,8 @@ export function AssignmentTable() {
       ) : (
         <>
           <div className="flex flex-col max-h-[60vh] rounded-lg border border-border/10 overflow-hidden">
-            <div className="border-b border-border/30 bg-gradient-to-b from-[#f0ede9] to-[#e6e3de] shadow-[0_1px_2px_rgba(0,0,0,0.06)] shrink-0">
-              <table className="w-full text-sm table-fixed">
+            <div className="border-b border-border/30 bg-gradient-to-b from-[#f0ede9] to-[#e6e3de] shadow-[0_1px_2px_rgba(0,0,0,0.06)] shrink-0 overflow-x-auto">
+              <table className="w-full min-w-[600px] text-sm table-fixed">
                 <thead>
                   <tr>
                     <th className="w-[15%] px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground/80 tracking-wide">Date</th>
@@ -175,7 +175,7 @@ export function AssignmentTable() {
               </table>
             </div>
             <div className="overflow-auto flex-1">
-            <table className="w-full text-sm table-fixed">
+            <table className="w-full min-w-[600px] text-sm table-fixed">
               <colgroup>
                 <col className="w-[15%]" />
                 <col className="w-[12%]" />
@@ -213,11 +213,11 @@ export function AssignmentTable() {
           </div>
 
           {sorted.length > 0 && (
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-muted-foreground">
                 Total shifts: {sorted.length} | Claimed: {claimedCount} | Unclaimed: {unclaimedCount}
               </div>
-              <Button variant="outline" onClick={handleExport}>
+              <Button variant="outline" onClick={handleExport} className="w-full sm:w-auto">
                 <Download className="mr-2 h-4 w-4" />
                 Export to XLSX
               </Button>
