@@ -14,9 +14,9 @@ export function ShiftLimitsPage({ profile }: ShiftLimitsPageProps) {
   return (
     <div className="mx-auto flex h-full max-w-5xl flex-col px-4 py-4">
       <div className="mb-4 shrink-0">
-        <h1 className="text-2xl font-semibold">Shift Limits</h1>
+        <h1 className="text-2xl font-semibold">Limits</h1>
       </div>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-hidden">
         <ShiftLimitsManager />
       </div>
     </div>

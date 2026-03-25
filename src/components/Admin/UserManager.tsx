@@ -128,6 +128,7 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
   const [resetting, setResetting] = useState(false)
   const [resetTarget, setResetTarget] = useState<ExistingUser | null>(null)
   const [userSearch, setUserSearch] = useState('')
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [showManual, setShowManual] = useState(false)
   const [manualForm, setManualForm] = useState({ name: '', email: '', password: '', role: 'agent' })
   const [manualCreating, setManualCreating] = useState(false)
@@ -530,8 +531,8 @@ export function UserManager({ profile: currentUser }: UserManagerProps) {
                   }).map((u, idx) => {
                     const isMe = u.id === currentUser.id
                     return (
-                      <tr key={u.id} className={`transition-colors hover:bg-muted/20 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/10'}`}>
-                        <td className="px-3 py-2 flex items-center gap-1">
+                      <tr key={u.id} className={`transition-colors hover:bg-[#1a1a3e]/10 ${selectedUserId === u.id ? 'bg-[#1a1a3e]/10' : idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/20'}`}>
+                        <td className="px-3 py-2 flex items-center gap-1 cursor-pointer" onClick={() => setSelectedUserId(selectedUserId === u.id ? null : u.id)}>
                           {isMe && <Lock className="h-3 w-3 text-muted-foreground" />}
                           {u.full_name}
                           {isMe && <span className="text-xs text-muted-foreground">(you)</span>}

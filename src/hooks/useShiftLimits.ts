@@ -1,43 +1,65 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { GlobalShiftLimits, EmployeeShiftLimit, ShiftLimits } from '@/types'
+import type { MonthlyShiftLimits, EmployeeShiftLimit, ShiftLimits } from '@/types'
 
 const DEFAULT_LIMITS: ShiftLimits = {
-  eb_limit: 4,
-  mb_limit: 4,
-  nb_limit: 4,
+  eb_limit: null,
+  mb_limit: null,
+  nb_limit: null,
   total_bonus_limit: 4,
   pm1_limit: null,
 }
 
-export function useShiftLimits() {
-  const [globalLimits, setGlobalLimits] = useState<GlobalShiftLimits | null>(null)
+export function useShiftLimits(monthYear: string) {
+  const [monthlyLimits, setMonthlyLimits] = useState<MonthlyShiftLimits | null>(null)
   const [employeeLimits, setEmployeeLimits] = useState<EmployeeShiftLimit[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchGlobalLimits = useCallback(async () => {
-    const { data } = await supabase
-      .from('global_shift_limits')
+  const fetchMonthlyLimits = useCallback(async (my: string) => {
+    const { data, error } = await supabase
+      .from('monthly_shift_limits')
       .select('*')
-      .limit(1)
-      .single()
-    if (data) setGlobalLimits(data)
+      .eq('month_year', my)
+      .maybeSingle()
+
+    if (data) {
+      setMonthlyLimits(data)
+    } else if (!error) {
+      // No row exists for this month — auto-create with defaults
+      const { data: created } = await supabase
+        .from('monthly_shift_limits')
+        .insert({
+          month_year: my,
+          eb_limit: DEFAULT_LIMITS.eb_limit,
+          mb_limit: DEFAULT_LIMITS.mb_limit,
+          nb_limit: DEFAULT_LIMITS.nb_limit,
+          total_bonus_limit: DEFAULT_LIMITS.total_bonus_limit,
+          pm1_limit: DEFAULT_LIMITS.pm1_limit,
+        })
+        .select()
+        .single()
+      if (created) setMonthlyLimits(created)
+    }
+    // If error (e.g. table doesn't exist yet), silently skip
   }, [])
 
-  const fetchEmployeeLimits = useCallback(async () => {
+  const fetchEmployeeLimits = useCallback(async (my: string) => {
     const { data } = await supabase
       .from('employee_shift_limits')
       .select('*')
+      .eq('month_year', my)
     setEmployeeLimits(data ?? [])
   }, [])
 
   useEffect(() => {
+    if (!monthYear) return
+    setLoading(true)
     const load = async () => {
-      await Promise.all([fetchGlobalLimits(), fetchEmployeeLimits()])
+      await Promise.all([fetchMonthlyLimits(monthYear), fetchEmployeeLimits(monthYear)])
       setLoading(false)
     }
     load()
-  }, [fetchGlobalLimits, fetchEmployeeLimits])
+  }, [monthYear, fetchMonthlyLimits, fetchEmployeeLimits])
 
   const getEffectiveLimits = useCallback(
     (employeeId: string): ShiftLimits => {
@@ -51,27 +73,27 @@ export function useShiftLimits() {
           pm1_limit: emp.pm1_limit,
         }
       }
-      if (globalLimits) {
+      if (monthlyLimits) {
         return {
-          eb_limit: globalLimits.eb_limit,
-          mb_limit: globalLimits.mb_limit,
-          nb_limit: globalLimits.nb_limit,
-          total_bonus_limit: globalLimits.total_bonus_limit,
-          pm1_limit: globalLimits.pm1_limit,
+          eb_limit: monthlyLimits.eb_limit,
+          mb_limit: monthlyLimits.mb_limit,
+          nb_limit: monthlyLimits.nb_limit,
+          total_bonus_limit: monthlyLimits.total_bonus_limit,
+          pm1_limit: monthlyLimits.pm1_limit,
         }
       }
       return DEFAULT_LIMITS
     },
-    [globalLimits, employeeLimits]
+    [monthlyLimits, employeeLimits]
   )
 
-  const updateGlobalLimits = async (limits: Partial<ShiftLimits>) => {
-    if (!globalLimits) return
+  const updateMonthlyLimits = async (limits: Partial<ShiftLimits>) => {
+    if (!monthlyLimits) return
     const { error } = await supabase
-      .from('global_shift_limits')
+      .from('monthly_shift_limits')
       .update({ ...limits, updated_at: new Date().toISOString() })
-      .eq('id', globalLimits.id)
-    if (!error) await fetchGlobalLimits()
+      .eq('id', monthlyLimits.id)
+    if (!error) await fetchMonthlyLimits(monthYear)
     return { error }
   }
 
@@ -85,12 +107,13 @@ export function useShiftLimits() {
         .from('employee_shift_limits')
         .update({ ...limits, updated_at: new Date().toISOString() })
         .eq('id', existing.id)
-      if (!error) await fetchEmployeeLimits()
+      if (!error) await fetchEmployeeLimits(monthYear)
       return { error }
     } else {
-      const defaults = globalLimits ?? DEFAULT_LIMITS
+      const defaults = monthlyLimits ?? DEFAULT_LIMITS
       const { error } = await supabase.from('employee_shift_limits').insert({
         employee_id: employeeId,
+        month_year: monthYear,
         eb_limit: defaults.eb_limit,
         mb_limit: defaults.mb_limit,
         nb_limit: defaults.nb_limit,
@@ -99,18 +122,18 @@ export function useShiftLimits() {
         is_custom: false,
         ...limits,
       })
-      if (!error) await fetchEmployeeLimits()
+      if (!error) await fetchEmployeeLimits(monthYear)
       return { error }
     }
   }
 
   return {
-    globalLimits,
+    monthlyLimits,
     employeeLimits,
     loading,
     getEffectiveLimits,
-    updateGlobalLimits,
+    updateMonthlyLimits,
     upsertEmployeeLimit,
-    refetch: () => Promise.all([fetchGlobalLimits(), fetchEmployeeLimits()]),
+    refetch: () => Promise.all([fetchMonthlyLimits(monthYear), fetchEmployeeLimits(monthYear)]),
   }
 }

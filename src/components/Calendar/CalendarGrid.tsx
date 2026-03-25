@@ -109,7 +109,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
     getUserClaimForDate,
     getUser1PMClaimForDate,
   } = useShiftClaims(monthYear)
-  const { getEffectiveLimits, loading: limitsLoading } = useShiftLimits()
+  const { getEffectiveLimits, loading: limitsLoading } = useShiftLimits(monthYear)
   const { isLocked } = useScheduleLock(monthYear)
 
   const monthStart = startOfMonth(currentMonth)
@@ -137,9 +137,9 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
   const nbCount = userClaims.filter((c) => c.id_shift_type.startsWith('NB')).length
 
   const shiftTypeLimitReached: Record<string, boolean> = {
-    EB: limits ? ebCount >= limits.eb_limit : false,
-    MB: limits ? mbCount >= limits.mb_limit : false,
-    NB: limits ? nbCount >= limits.nb_limit : false,
+    EB: limits?.eb_limit != null ? ebCount >= limits.eb_limit : false,
+    MB: limits?.mb_limit != null ? mbCount >= limits.mb_limit : false,
+    NB: limits?.nb_limit != null ? nbCount >= limits.nb_limit : false,
     '1-PM': limits?.pm1_limit != null ? user1PMCount >= limits.pm1_limit : false,
     '1PM': limits?.pm1_limit != null ? user1PMCount >= limits.pm1_limit : false,
   }
