@@ -246,7 +246,7 @@ export function ShiftLimitsManager() {
                   </tr>
                 </thead>
                 <tbody>
-                  {agents.map((agent, idx) => {
+                  {agents.map((agent) => {
                     const agentLimit = getAgentLimit(agent.id)
                     const isCustom = agentLimit?.is_custom ?? false
                     const effective = getEffective(agent.id)
