@@ -85,6 +85,7 @@ export function AssignmentTable() {
 
   const [showUnclaimAll, setShowUnclaimAll] = useState(false)
   const [unclaiming, setUnclaiming] = useState(false)
+  const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null)
 
   const handleExport = () => {
     exportAssignments(bonusShifts, claims, profileMap, monthYear)
@@ -186,10 +187,10 @@ export function AssignmentTable() {
                 {filtered.map((shift, idx) => {
                   const claim = claimMap.get(shift.id_shift_type)
                   return (
-                    <tr key={shift.id} className={`transition-colors hover:bg-muted/30 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/20'}`}>
+                    <tr key={shift.id} className={`transition-colors hover:bg-[#1a1a3e]/10 ${selectedShiftId === shift.id ? 'bg-[#1a1a3e]/10' : idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/20'}`}>
                       <td className="px-3 py-2">{shift.date}</td>
                       <td className="px-3 py-2">{shift.shift_type}</td>
-                      <td className="px-3 py-2">{shift.id_shift_type}</td>
+                      <td className="px-3 py-2 cursor-pointer" onClick={() => setSelectedShiftId(selectedShiftId === shift.id ? null : shift.id)}>{shift.id_shift_type}</td>
                       <td className="px-3 py-2">
                         {claim ? (profileMap[claim.claimed_by] ?? 'Unknown') : ''}
                       </td>

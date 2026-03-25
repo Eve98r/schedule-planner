@@ -30,6 +30,7 @@ export function ShiftLimitsManager() {
   const [agents, setAgents] = useState<Profile[]>([])
   const [saving, setSaving] = useState<string | null>(null)
   const [applied, setApplied] = useState(false)
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
 
   const [monthDraft, setMonthDraft] = useState<ShiftLimits>({
     eb_limit: null, mb_limit: null, nb_limit: null, total_bonus_limit: 4, pm1_limit: null,
@@ -131,120 +132,153 @@ export function ShiftLimitsManager() {
   }
 
   return (
-    <div className="space-y-6 pb-6">
-      {/* Month Picker */}
-      <div className="flex items-center gap-3">
-        <MonthPicker value={selectedMonth} onChange={handleMonthChange} />
-        <span className="text-xs text-muted-foreground">Select the month to configure the limits below</span>
-      </div>
+    <div className="flex flex-col h-full">
+      {/* Fixed top section */}
+      <div className="shrink-0 space-y-4">
+        {/* Month Picker */}
+        <div className="flex items-center gap-3">
+          <MonthPicker value={selectedMonth} onChange={handleMonthChange} />
+          <span className="text-xs text-muted-foreground">Select the month to configure the limits below</span>
+        </div>
 
-      {/* Monthly Defaults */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Monthly Default Limits</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            These limits apply to all agents for the selected month unless they have custom overrides.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-6 gap-4 items-end">
-            <GlobalLimitField label="EB" value={monthDraft.eb_limit} onChange={(v) => setMonthDraft((d) => ({ ...d, eb_limit: v }))} />
-            <GlobalLimitField label="MB" value={monthDraft.mb_limit} onChange={(v) => setMonthDraft((d) => ({ ...d, mb_limit: v }))} />
-            <GlobalLimitField label="NB" value={monthDraft.nb_limit} onChange={(v) => setMonthDraft((d) => ({ ...d, nb_limit: v }))} />
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1.5">Total Bonus</label>
-              <input
-                type="number"
-                min={0}
-                className="h-9 w-full rounded-md border border-input px-2.5 text-sm"
-                value={monthDraft.total_bonus_limit}
-                onChange={(e) => setMonthDraft((d) => ({ ...d, total_bonus_limit: parseInt(e.target.value) || 0 }))}
-              />
+        {/* Monthly Defaults */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Monthly Default Limits</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              These limits apply to all agents for the selected month unless they have custom overrides.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-6 gap-4 items-end">
+              <GlobalLimitField label="EB" value={monthDraft.eb_limit} onChange={(v) => setMonthDraft((d) => ({ ...d, eb_limit: v }))} />
+              <GlobalLimitField label="MB" value={monthDraft.mb_limit} onChange={(v) => setMonthDraft((d) => ({ ...d, mb_limit: v }))} />
+              <GlobalLimitField label="NB" value={monthDraft.nb_limit} onChange={(v) => setMonthDraft((d) => ({ ...d, nb_limit: v }))} />
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Total Bonus</label>
+                <input
+                  type="number"
+                  min={0}
+                  className="h-9 w-full rounded-md border border-input px-2.5 text-sm"
+                  value={monthDraft.total_bonus_limit}
+                  onChange={(e) => setMonthDraft((d) => ({ ...d, total_bonus_limit: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+              <GlobalLimitField label="1-PM" value={monthDraft.pm1_limit} onChange={(v) => setMonthDraft((d) => ({ ...d, pm1_limit: v }))} />
+              <div>
+                <button
+                  onClick={handleSaveMonthly}
+                  disabled={saving === 'monthly' || (!isDirty && !applied)}
+                  className={`h-9 w-full rounded-md px-3 text-sm font-medium transition-all duration-500 ${
+                    applied
+                      ? 'bg-emerald-600 text-white'
+                      : isDirty
+                        ? 'bg-[#1a1a3e] text-white hover:opacity-90'
+                        : 'bg-muted/40 text-muted-foreground/40 cursor-default'
+                  }`}
+                >
+                  {saving === 'monthly' ? 'Applying...' : applied ? 'Applied' : isDirty ? 'Apply Limits' : 'Limits Applied'}
+                </button>
+              </div>
             </div>
-            <GlobalLimitField label="1-PM" value={monthDraft.pm1_limit} onChange={(v) => setMonthDraft((d) => ({ ...d, pm1_limit: v }))} />
-            <div>
-              <button
-                onClick={handleSaveMonthly}
-                disabled={saving === 'monthly' || (!isDirty && !applied)}
-                className={`h-9 w-full rounded-md px-3 text-sm font-medium transition-all duration-500 ${
-                  applied
-                    ? 'bg-emerald-600 text-white'
-                    : isDirty
-                      ? 'bg-[#1a1a3e] text-white hover:opacity-90'
-                      : 'bg-muted/40 text-muted-foreground/40 cursor-default'
-                }`}
-              >
-                {saving === 'monthly' ? 'Applying...' : applied ? 'Applied' : isDirty ? 'Apply Limits' : 'Limits Applied'}
-              </button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Per-Agent Limits */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Per-Agent Limits</CardTitle>
-          <p className="text-xs text-muted-foreground">
+        {/* Per-Agent header */}
+        <div className="pt-2">
+          <h3 className="text-base font-semibold">Per-Agent Limits</h3>
+          <p className="text-xs text-muted-foreground mt-1">
             Enable "Custom" to override monthly defaults for specific agents.
           </p>
-        </CardHeader>
-        <CardContent>
-          {agents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No agent accounts found.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left">
-                    <th className="py-2.5 pr-3 font-medium text-muted-foreground">Agent</th>
-                    <th className="py-2.5 px-2 font-medium text-muted-foreground text-center w-16">Custom</th>
-                    <th className="py-2.5 px-2 font-medium text-muted-foreground text-center w-24">EB</th>
-                    <th className="py-2.5 px-2 font-medium text-muted-foreground text-center w-24">MB</th>
-                    <th className="py-2.5 px-2 font-medium text-muted-foreground text-center w-24">NB</th>
-                    <th className="py-2.5 px-2 font-medium text-muted-foreground text-center w-20">Total</th>
-                    <th className="py-2.5 px-2 font-medium text-muted-foreground text-center w-24">1-PM</th>
-                  </tr>
-                </thead>
+        </div>
+
+        {/* Table header (frozen) */}
+        {agents.length > 0 && (
+          <div className="border-b border-border/30 bg-gradient-to-b from-[#f0ede9] to-[#e6e3de] shadow-[0_1px_2px_rgba(0,0,0,0.06)] rounded-t-md overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '80px' }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th className="py-2.5 pl-3 pr-3 text-left text-sm font-medium text-muted-foreground/80">Agent</th>
+                <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">Custom</th>
+                <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">EB</th>
+                <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">MB</th>
+                <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">NB</th>
+                <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">Total</th>
+                <th className="py-2.5 px-2 text-center text-sm font-medium text-muted-foreground/80">1-PM</th>
+              </tr>
+            </thead>
+          </table>
+          </div>
+        )}
+      </div>
+
+      {/* Scrollable agent rows */}
+      <div className="flex-1 overflow-auto min-h-0" style={{ scrollbarGutter: 'stable' }}>
+        {agents.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No agent accounts found.</p>
+        ) : (
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '80px' }} />
+            </colgroup>
                 <tbody>
-                  {agents.map((agent) => {
+                  {agents.map((agent, idx) => {
                     const agentLimit = getAgentLimit(agent.id)
                     const isCustom = agentLimit?.is_custom ?? false
                     const effective = getEffective(agent.id)
                     const isSaving = saving === agent.id
 
                     return (
-                      <tr key={agent.id} className="border-b last:border-b-0 hover:bg-muted/30 transition-colors">
-                        <td className="py-2.5 pr-3 font-medium">{agent.full_name}</td>
+                      <tr key={agent.id} className={`hover:bg-[#1a1a3e]/10 transition-colors rounded ${selectedAgentId === agent.id ? 'bg-[#1a1a3e]/10' : idx % 2 === 0 ? 'bg-transparent' : 'bg-muted/20'}`}>
+                        <td className="py-2.5 pl-3 pr-3 font-medium cursor-pointer" onClick={() => setSelectedAgentId(selectedAgentId === agent.id ? null : agent.id)}>{agent.full_name}</td>
                         <td className="py-2.5 px-2 text-center">
-                          <input
-                            type="checkbox"
-                            checked={isCustom}
+                          <button
                             disabled={isSaving}
-                            onChange={() => handleToggleCustom(agent.id)}
-                            className="h-4 w-4 rounded border-gray-300 accent-[#1a1a3e]"
-                          />
+                            onClick={() => handleToggleCustom(agent.id)}
+                            className={`h-7 px-2.5 rounded-full text-[11px] font-medium transition-all ${
+                              isCustom
+                                ? 'bg-[#1a1a3e] text-white shadow-sm'
+                                : 'bg-muted/50 text-muted-foreground/60 hover:bg-muted hover:text-muted-foreground'
+                            } disabled:opacity-40`}
+                          >
+                            {isCustom ? 'Custom' : 'Default'}
+                          </button>
                         </td>
-                        <td className="py-2.5 px-2 text-center">
+                        <td className={`py-2.5 px-2 text-center transition-opacity ${isCustom ? 'opacity-100' : 'opacity-20'}`}>
                           <AgentNullableCell value={effective.eb_limit} isCustom={isCustom} isSaving={isSaving} onChangeValue={(v) => handleAgentLimitChange(agent.id, 'eb_limit', v)} />
                         </td>
-                        <td className="py-2.5 px-2 text-center">
+                        <td className={`py-2.5 px-2 text-center transition-opacity ${isCustom ? 'opacity-100' : 'opacity-20'}`}>
                           <AgentNullableCell value={effective.mb_limit} isCustom={isCustom} isSaving={isSaving} onChangeValue={(v) => handleAgentLimitChange(agent.id, 'mb_limit', v)} />
                         </td>
-                        <td className="py-2.5 px-2 text-center">
+                        <td className={`py-2.5 px-2 text-center transition-opacity ${isCustom ? 'opacity-100' : 'opacity-20'}`}>
                           <AgentNullableCell value={effective.nb_limit} isCustom={isCustom} isSaving={isSaving} onChangeValue={(v) => handleAgentLimitChange(agent.id, 'nb_limit', v)} />
                         </td>
-                        <td className="py-2.5 px-2 text-center">
+                        <td className={`py-2.5 px-2 text-center transition-opacity ${isCustom ? 'opacity-100' : 'opacity-20'}`}>
                           <input
                             type="number"
                             min={0}
-                            className="h-8 w-16 rounded-md border border-input px-1.5 text-sm text-center disabled:opacity-40 disabled:bg-muted"
+                            className="h-8 w-16 rounded-md border border-input px-1.5 text-sm text-center disabled:opacity-100 disabled:bg-muted"
                             value={effective.total_bonus_limit}
                             disabled={!isCustom || isSaving}
                             onChange={(e) => handleAgentLimitChange(agent.id, 'total_bonus_limit', parseInt(e.target.value) || 0)}
                           />
                         </td>
-                        <td className="py-2.5 px-2 text-center">
+                        <td className={`py-2.5 px-2 text-center transition-opacity ${isCustom ? 'opacity-100' : 'opacity-20'}`}>
                           <AgentNullableCell value={effective.pm1_limit} isCustom={isCustom} isSaving={isSaving} onChangeValue={(v) => handleAgentLimitChange(agent.id, 'pm1_limit', v)} />
                         </td>
                       </tr>
@@ -252,10 +286,8 @@ export function ShiftLimitsManager() {
                   })}
                 </tbody>
               </table>
-            </div>
           )}
-        </CardContent>
-      </Card>
+      </div>
     </div>
   )
 }

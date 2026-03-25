@@ -16,7 +16,7 @@ export function ShiftLimitsPage({ profile }: ShiftLimitsPageProps) {
       <div className="mb-4 shrink-0">
         <h1 className="text-2xl font-semibold">Limits</h1>
       </div>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-hidden">
         <ShiftLimitsManager />
       </div>
     </div>
