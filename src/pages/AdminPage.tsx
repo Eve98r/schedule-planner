@@ -63,7 +63,7 @@ export function AdminPage({ profile }: AdminPageProps) {
           <TabsTrigger value="import">Data Import</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="assignments">Assignment Overview</TabsTrigger>
-          <TabsTrigger value="limits">Shift Limits</TabsTrigger>
+          <TabsTrigger value="limits">Limits</TabsTrigger>
         </TabsList>
         <TabsContent value="import" className="flex-1 overflow-auto data-[state=inactive]:hidden" forceMount>
           <ImportPanel />

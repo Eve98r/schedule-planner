@@ -37,21 +37,23 @@ export interface ShiftClaim {
 export type DayType = 'OFF' | 'N' | 'M' | 'E' | 'T' | 'V' | 'W'
 
 export interface ShiftLimits {
-  eb_limit: number
-  mb_limit: number
-  nb_limit: number
+  eb_limit: number | null
+  mb_limit: number | null
+  nb_limit: number | null
   total_bonus_limit: number
   pm1_limit: number | null
 }
 
-export interface GlobalShiftLimits extends ShiftLimits {
+export interface MonthlyShiftLimits extends ShiftLimits {
   id: string
+  month_year: string
   updated_at: string
 }
 
 export interface EmployeeShiftLimit extends ShiftLimits {
   id: string
   employee_id: string
+  month_year: string
   is_custom: boolean
   updated_at: string
 }
