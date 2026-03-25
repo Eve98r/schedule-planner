@@ -279,7 +279,7 @@ export function MasterCalendar() {
           </div>
         </div>
         {/* Day labels + coverage data — single horizontal scroll */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" style={{ overscrollBehaviorX: 'contain', WebkitOverflowScrolling: 'touch' }}>
         <div className="flex border-y-2 border-border/30" style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.08), inset 0 2px 4px rgba(0,0,0,0.04)', minWidth: `${days.length * 40}px` }}>
           {days.map((day) => {
             const dow = getDay(day)
@@ -403,14 +403,14 @@ export function MasterCalendar() {
         <div
           ref={gridRef}
           className="overflow-auto schedule-grid"
-          style={{ maxHeight: 'calc(26px * 20 + 40px)' }}
+          style={{ maxHeight: 'calc(26px * 20 + 40px)', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
           onMouseMove={handleGridHover}
           onMouseLeave={handleGridLeave}
         >
           <table className="border-collapse w-full" style={{ minWidth: `${days.length * 34 + 140}px` }}>
             <thead className="sticky top-0 z-30" style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.08), inset 0 2px 4px rgba(0,0,0,0.04)' }}>
               <tr>
-                <th className="sticky left-0 z-30 border-y-2 border-border/30 border-r border-border/15 px-3 py-2 text-left text-[11px] font-semibold text-foreground/70" style={{ minWidth: 140, backgroundColor: '#eeeeee' }}>
+                <th className="sticky left-0 z-30 border-y-2 border-border/30 border-r border-border/15 px-3 py-2 text-left text-[11px] font-semibold text-foreground/70" style={{ minWidth: 140, backgroundColor: '#eeeeee', touchAction: 'pan-y' }}>
                   Agent
                 </th>
                 {days.map((day, colIdx) => {
@@ -422,7 +422,7 @@ export function MasterCalendar() {
                       key={format(day, 'dd')}
                       data-col={colIdx}
                       className="grid-th border-y-2 border-border/30 border-r border-border/15 px-0 py-1.5 text-center"
-                      style={{ backgroundColor: isSat || isSun ? '#e8e8e8' : '#eeeeee', minWidth: 32 }}
+                      style={{ backgroundColor: isSat || isSun ? '#e8e8e8' : '#eeeeee', minWidth: 32, touchAction: 'pan-x' }}
                     >
                       <div className={`text-[9px] leading-none font-medium ${isSat || isSun ? 'text-red-400/50' : 'text-muted-foreground/50'}`}>{format(day, 'EEE')}</div>
                       <div className={`text-[11px] leading-tight font-semibold ${isToday(day) ? 'text-primary font-bold' : 'text-foreground/80'}`}>{format(day, 'd')}</div>
@@ -437,7 +437,7 @@ export function MasterCalendar() {
                   <tr key={name} data-row={rowIdx}>
                     <td
                       className="grid-name sticky left-0 z-10 border-b border-r border-border/10 px-3 py-0.5 text-[11px] font-medium whitespace-nowrap"
-                      style={{ backgroundColor: '#f5f3f0', color: 'rgba(0,0,0,0.8)' }}
+                      style={{ backgroundColor: '#f5f3f0', color: 'rgba(0,0,0,0.8)', touchAction: 'pan-y' }}
                     >
                       {name}
                     </td>
@@ -476,7 +476,7 @@ export function MasterCalendar() {
                           data-row={rowIdx}
                           data-col={colIdx}
                           className="grid-cell border-b border-r border-border/6 text-center p-0"
-                          style={{ backgroundColor: bg }}
+                          style={{ backgroundColor: bg, touchAction: 'pan-x' }}
                         >
                           <div className="flex flex-col items-center justify-center h-[26px]">
                             {text && <span className="text-[10px] font-bold leading-none" style={{ color: fg }}>{text}</span>}
