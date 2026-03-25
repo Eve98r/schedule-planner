@@ -262,24 +262,25 @@ export function MasterCalendar() {
   const selectedClaims = selectedDay ? claims.filter((c) => c.date === selectedDay).map((c) => ({ name: profileNameMap[c.claimed_by] ?? '?', prefix: getClaimPrefix(c.id_shift_type) })) : []
 
   return (
-    <div className="mx-auto max-w-[1600px] px-5 py-5 overflow-auto">
+    <div className="mx-auto max-w-[1600px] px-2 py-3 sm:px-5 sm:py-5 overflow-auto">
       <PageHeader currentMonth={currentMonth} prev={prev} next={next} />
 
       {/* ═══ Daily Coverage ═══ */}
       <div className="mb-6 rounded-xl border border-border/25 bg-card shadow-sm overflow-hidden">
         <div className="px-4 py-1 flex items-center justify-between" style={{ backgroundColor: '#1a1a3e' }}>
           <span className="text-[10px] font-semibold uppercase tracking-widest text-white/70">Daily Coverage</span>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-2 sm:gap-4">
             {COVERAGE_TYPES.map((t) => (
               <div key={t} className="flex items-center gap-1.5">
                 <div className="h-2.5 w-5 rounded-sm" style={{ backgroundColor: COVERAGE_COLORS[t], opacity: 0.8 }} />
-                <span className="text-[9px] text-white/50 font-medium">{COVERAGE_LABELS[t]}</span>
+                <span className="hidden sm:inline text-[9px] text-white/50 font-medium">{COVERAGE_LABELS[t]}</span>
               </div>
             ))}
           </div>
         </div>
-        {/* Day labels header row */}
-        <div className="flex overflow-x-auto border-y-2 border-border/30" style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.08), inset 0 2px 4px rgba(0,0,0,0.04)' }}>
+        {/* Day labels + coverage data — single horizontal scroll */}
+        <div className="overflow-x-auto">
+        <div className="flex border-y-2 border-border/30" style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.08), inset 0 2px 4px rgba(0,0,0,0.04)', minWidth: `${days.length * 40}px` }}>
           {days.map((day) => {
             const dow = getDay(day)
             const isWeekend = dow === 0 || dow === 6
@@ -301,7 +302,7 @@ export function MasterCalendar() {
           })}
         </div>
         {/* Coverage data rows */}
-        <div className="flex overflow-x-auto">
+        <div className="flex" style={{ minWidth: `${days.length * 40}px` }}>
           {days.map((day) => {
             const dateStr = format(day, 'yyyy-MM-dd')
             const isSel = selectedDay === dateStr
@@ -346,6 +347,7 @@ export function MasterCalendar() {
               </button>
             )
           })}
+        </div>
         </div>
       </div>
 

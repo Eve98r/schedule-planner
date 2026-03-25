@@ -168,7 +168,7 @@ export function DayCell({
     <>
       <div
         className={cn(
-          'min-h-[80px] border-b border-r border-border/15 p-1 flex flex-col',
+          'min-h-[70px] sm:min-h-[80px] border-b border-r border-border/15 p-1 flex flex-col',
           !inMonth && 'opacity-20',
           today && 'ring-2 ring-primary ring-inset',
           canClaim && 'cursor-pointer hover:brightness-95 transition-all'

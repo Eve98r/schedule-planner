@@ -163,9 +163,9 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
+    <div className="mx-auto max-w-5xl px-2 py-3 sm:px-4 sm:py-6">
       {/* Header bar */}
-      <div className="mb-5 rounded-xl bg-gradient-to-r from-[#3b0f62]/5 to-[#f8d040]/5 px-5 py-4">
+      <div className="mb-5 rounded-xl bg-gradient-to-r from-[#3b0f62]/5 to-[#f8d040]/5 px-3 py-3 sm:px-5 sm:py-4">
         {/* Month Navigation */}
         <div className="flex items-center justify-between">
           <button
@@ -175,7 +175,7 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
             <ChevronLeft className="h-4 w-4" />
           </button>
           <div className="text-center">
-            <h2 className="text-lg font-semibold tracking-wide">{format(currentMonth, 'MMMM yyyy')}</h2>
+            <h2 className="text-base sm:text-lg font-semibold tracking-wide">{format(currentMonth, 'MMMM yyyy')}</h2>
             {/* Claims counter as progress dots */}
             {!isBlank && (
               <div className="flex items-center justify-center gap-1.5 mt-1">
@@ -246,8 +246,8 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
         </div>
       ) : (
         <>
-          {/* Calendar grid */}
-          <div className="rounded-xl overflow-hidden shadow-sm border border-border/20">
+          {/* Calendar grid — hidden on mobile, list view shows instead */}
+          <div className="hidden sm:block rounded-xl overflow-hidden shadow-sm border border-border/20">
           <div className="grid grid-cols-7 gap-0">
             {WEEKDAYS.map((d) => (
               <div key={d} className="border-b border-r last:border-r-0 border-border/20 bg-gradient-to-b from-[#f0ede9] to-[#e6e3de] px-2 py-2 text-center text-xs font-semibold text-muted-foreground/70 tracking-wide">
