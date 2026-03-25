@@ -16,7 +16,7 @@ export function useShiftLimits(monthYear: string) {
   const [loading, setLoading] = useState(true)
 
   const fetchMonthlyLimits = useCallback(async (my: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('monthly_shift_limits')
       .select('*')
       .eq('month_year', my)
@@ -24,8 +24,8 @@ export function useShiftLimits(monthYear: string) {
 
     if (data) {
       setMonthlyLimits(data)
-    } else {
-      // Auto-create with defaults for this month
+    } else if (!error) {
+      // No row exists for this month — auto-create with defaults
       const { data: created } = await supabase
         .from('monthly_shift_limits')
         .insert({
@@ -40,6 +40,7 @@ export function useShiftLimits(monthYear: string) {
         .single()
       if (created) setMonthlyLimits(created)
     }
+    // If error (e.g. table doesn't exist yet), silently skip
   }, [])
 
   const fetchEmployeeLimits = useCallback(async (my: string) => {
