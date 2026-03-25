@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { MonthPicker } from '@/components/ui/MonthPicker'
 import { useShiftLimits } from '@/hooks/useShiftLimits'
 import { supabase } from '@/lib/supabase'
