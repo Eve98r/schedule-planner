@@ -27,6 +27,7 @@ interface ShiftDropdownProps {
   dayType?: string
   isDark?: boolean
   hideClaimedBadge?: boolean
+  emptyText?: string
   onClaim: (idShiftType: string, date: string) => Promise<{ error: unknown }>
   onUnclaim: (idShiftType: string) => Promise<{ error: unknown }>
 }
@@ -134,9 +135,13 @@ export function ShiftDropdown({
   dayType,
   isDark = false,
   hideClaimedBadge = false,
+  emptyText,
   onClaim,
   onUnclaim,
 }: ShiftDropdownProps) {
+  const emptyFallback = emptyText
+    ? <span className="text-[10px] text-black/25">{emptyText}</span>
+    : null
   const hasClaim = !!userClaim
   const has1PMClaim = !!user1PMClaim
 
@@ -155,7 +160,7 @@ export function ShiftDropdown({
       const claim = (hasClaim ? userClaim : user1PMClaim)!
       return <ClaimBadge claim={claim} isDark={isDark} onUnclaim={onUnclaim} hideClaimedBadge={true} />
     }
-    return null
+    return emptyFallback
   }
 
   // If only one claim, show it + possibly a select for the other type
@@ -223,11 +228,7 @@ export function ShiftDropdown({
   })
 
   if (claimable.length === 0) {
-    return (
-      <div className={`text-[10px] text-center ${isDark ? 'text-white/70' : 'text-muted-foreground'}`}>
-        Limit reached
-      </div>
-    )
+    return emptyFallback
   }
 
   return (
@@ -244,7 +245,7 @@ export function ShiftDropdown({
           }
         }}
       >
-        <SelectTrigger className={`h-6 text-[10px] w-full min-w-0 px-1 ${isDark ? 'text-white border-white/40' : ''}`}>
+        <SelectTrigger className={`h-6 text-[10px] w-24 min-w-0 px-1 ${isDark ? 'text-white border-white/40' : ''}`}>
           <SelectValue placeholder="" />
         </SelectTrigger>
         <SelectContent>

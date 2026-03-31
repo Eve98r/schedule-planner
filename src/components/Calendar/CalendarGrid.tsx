@@ -287,25 +287,29 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
                 const bonusShifts = canManageShifts ? getBonusShiftsForDate(day) : []
                 const userClaim = effectiveUserId ? getUserClaimForDate(effectiveUserId, dateStr) : undefined
                 const user1PMClaim = effectiveUserId ? getUser1PMClaimForDate(effectiveUserId, dateStr) : undefined
+                const dtStyle = schedule ? (dayTypeStyles[schedule.day_type] ?? { color: '#666', backgroundColor: '#eee' }) : null
+                const rowBg = dtStyle?.backgroundColor === 'transparent' ? '#f5f5f5' : (dtStyle?.backgroundColor || '#f9f9f9')
 
                 return (
                   <div
                     key={dateStr}
-                    className="flex items-center gap-3 rounded-md border border-border p-2"
+                    className="flex items-center gap-2 rounded-lg px-3 py-2.5"
+                    style={{ backgroundColor: rowBg }}
                   >
-                    <div className="w-16 shrink-0 text-sm font-medium">
+                    <div className="w-12 shrink-0 text-xs font-medium text-black/40">
                       {format(day, 'EEE d')}
                     </div>
                     {schedule && (
-                      <Badge
-                        className="text-[10px] px-1.5 py-0 border-0"
-                        style={dayTypeStyles[schedule.day_type] ?? { color: '#666', backgroundColor: '#eee' }}
+                      <span
+                        className="text-base font-bold flex-1"
+                        style={{ color: dtStyle?.color || '#666' }}
                       >
                         {schedule.day_type}
-                      </Badge>
+                      </span>
                     )}
-                    {bonusShifts.length > 0 && (
-                      <div className="flex-1">
+                    {!schedule && <span className="flex-1" />}
+                    <div className="shrink-0">
+                      {bonusShifts.length > 0 ? (
                         <ShiftDropdown
                           bonusShifts={bonusShifts}
                           userClaim={userClaim}
@@ -315,11 +319,14 @@ export function CalendarGrid({ profile }: CalendarGridProps) {
                           shiftTypeLimitReached={shiftTypeLimitReached}
                           isLocked={isLocked && !canManage}
                           dayType={schedule?.day_type}
+                          emptyText="All claimed"
                           onClaim={handleClaim}
                           onUnclaim={handleUnclaim}
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <span className="text-[10px] text-black/25">No bonus</span>
+                      )}
+                    </div>
                   </div>
                 )
               })}
