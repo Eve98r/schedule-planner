@@ -64,11 +64,20 @@ input[type="number"] {
   background-color: #e0e0e0 !important;
 }
 
-body {
+html, body {
   margin: 0;
+  overscroll-behavior: none;
+  overflow: hidden;
+  background-color: var(--color-background);
+}
+
+#root {
+  overflow-x: hidden;
+}
+
+body {
   font-family:
     ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background-color: var(--color-background);
   color: var(--color-foreground);
 }

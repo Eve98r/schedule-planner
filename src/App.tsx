@@ -27,9 +27,9 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
       <Navbar profile={profile} onSignOut={signOut} />
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto overscroll-none" style={{ WebkitOverflowScrolling: 'touch' }}>
         <Routes>
           <Route path="/calendar" element={<CalendarPage profile={profile} />} />
           <Route path="/admin" element={<AdminPage profile={profile} />} />
