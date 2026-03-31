@@ -10,7 +10,6 @@ import {
 } from 'date-fns'
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, User, Lock } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
