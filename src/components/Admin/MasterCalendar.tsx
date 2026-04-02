@@ -247,6 +247,39 @@ export function MasterCalendar() {
     lastHover.current = null
   }, [])
 
+  // Touch direction locking for All Schedules grid (Issue 2)
+  const touchRef = useRef<{ startX: number; startY: number; locked: 'h' | 'v' | null }>({ startX: 0, startY: 0, locked: null })
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0]
+    touchRef.current = { startX: t.clientX, startY: t.clientY, locked: null }
+  }, [])
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0]
+    const tr = touchRef.current
+    if (!tr.locked) {
+      const dx = Math.abs(t.clientX - tr.startX)
+      const dy = Math.abs(t.clientY - tr.startY)
+      if (dx < 5 && dy < 5) return // not enough movement to decide
+      tr.locked = dx > dy ? 'h' : 'v'
+    }
+    const el = gridRef.current
+    if (!el) return
+    if (tr.locked === 'h') {
+      // Lock to horizontal — prevent vertical scroll
+      el.style.overflowY = 'hidden'
+    } else {
+      // Lock to vertical — prevent horizontal scroll
+      el.style.overflowX = 'hidden'
+    }
+  }, [])
+  const handleTouchEnd = useCallback(() => {
+    const el = gridRef.current
+    if (!el) return
+    el.style.overflowX = ''
+    el.style.overflowY = ''
+    touchRef.current = { startX: 0, startY: 0, locked: null }
+  }, [])
+
   if (loading) return <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading...</div>
 
   if (employeeNames.length === 0) {
@@ -279,7 +312,7 @@ export function MasterCalendar() {
           </div>
         </div>
         {/* Day labels + coverage data — single horizontal scroll */}
-        <div className="overflow-x-auto" style={{ overscrollBehaviorX: 'contain', WebkitOverflowScrolling: 'touch' }}>
+        <div className="overflow-x-auto" style={{ overscrollBehaviorX: 'none', backgroundColor: '#eeeeee' }}>
         <div className="flex border-y-2 border-border/30" style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.08), inset 0 2px 4px rgba(0,0,0,0.04)', minWidth: `${days.length * 40}px` }}>
           {days.map((day) => {
             const dow = getDay(day)
@@ -403,9 +436,12 @@ export function MasterCalendar() {
         <div
           ref={gridRef}
           className="overflow-auto schedule-grid"
-          style={{ maxHeight: 'calc(26px * 20 + 40px)', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+          style={{ maxHeight: 'calc(26px * 20 + 40px)', overscrollBehavior: 'none', backgroundColor: '#f5f3f0' }}
           onMouseMove={handleGridHover}
           onMouseLeave={handleGridLeave}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           <table className="border-collapse w-full" style={{ minWidth: `${days.length * 34 + 140}px` }}>
             <thead className="sticky top-0 z-30" style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.08), inset 0 2px 4px rgba(0,0,0,0.04)' }}>
@@ -449,26 +485,36 @@ export function MasterCalendar() {
                       const has1PM = ids.some((id) => is1PM(id))
                       const hasNon1PM = non1PM.length > 0
 
-                      let bg = '#f5f3f0'
-                      let fg = '#ccc'
-                      let text = ''
-
-                      if (hasNon1PM) {
-                        const prefix = getClaimPrefix(non1PM[0])
-                        const s = CLAIM_COLORS[prefix]
-                        if (s) { bg = s.bg; fg = s.color }
-                        text = prefix
-                      } else if (dayType) {
-                        if (dayType === 'W' || dayType === 'WO' || dayType === 'OFF' || dayType === 'VW' || dayType === 'V') {
-                          bg = '#f5f3f0'
-                          fg = '#ccc'
-                          text = dayType === 'W' ? 'W' : dayType
+                      // Determine base shift display
+                      let baseBg = '#f5f3f0'
+                      let baseFg = '#ccc'
+                      let baseText = ''
+                      const isWType = dayType === 'W' || dayType === 'WO' || dayType === 'OFF' || dayType === 'VW' || dayType === 'V'
+                      if (dayType) {
+                        if (isWType) {
+                          baseText = dayType === 'W' ? '' : dayType
                         } else {
                           const s = SHIFT_COLORS[dayType]
-                          if (s) { bg = s.bg; fg = s.color }
-                          text = dayType
+                          if (s) { baseBg = s.bg; baseFg = s.color }
+                          baseText = dayType
                         }
                       }
+
+                      // Determine bonus shift display
+                      let bonusText = ''
+                      let bonusBg = ''
+                      let bonusFg = ''
+                      if (hasNon1PM) {
+                        const prefix = getClaimPrefix(non1PM[0])
+                        bonusText = prefix
+                        const s = CLAIM_COLORS[prefix]
+                        if (s) { bonusBg = s.bg; bonusFg = s.color }
+                      }
+
+                      // W is replaced by bonus; other base types show alongside
+                      const showBase = baseText && !(dayType === 'W' && hasNon1PM)
+                      const showBonus = hasNon1PM
+                      const cellBg = showBonus && !showBase ? bonusBg : baseBg
 
                       return (
                         <td
@@ -476,11 +522,41 @@ export function MasterCalendar() {
                           data-row={rowIdx}
                           data-col={colIdx}
                           className="grid-cell border-b border-r border-border/6 text-center p-0"
-                          style={{ backgroundColor: bg, touchAction: 'pan-x' }}
+                          style={{ backgroundColor: cellBg, touchAction: 'pan-x' }}
                         >
                           <div className="flex flex-col items-center justify-center h-[26px]">
-                            {text && <span className="text-[10px] font-bold leading-none" style={{ color: fg }}>{text}</span>}
-                            {has1PM && <span className="text-[7px] font-semibold leading-none" style={{ color: hasNon1PM ? 'rgba(255,255,255,0.6)' : '#888' }}>1PM</span>}
+                            {showBase && <span className="text-[10px] font-bold leading-none" style={{ color: baseFg }}>{baseText}</span>}
+                            {showBonus && (
+                              <span
+                                className="font-bold leading-none"
+                                style={{
+                                  color: showBase ? bonusFg : bonusFg,
+                                  backgroundColor: showBase ? bonusBg : 'transparent',
+                                  fontSize: showBase ? '7px' : '10px',
+                                  borderRadius: showBase ? '2px' : undefined,
+                                  padding: showBase ? '0 2px' : undefined,
+                                }}
+                              >
+                                {bonusText}
+                              </span>
+                            )}
+                            {has1PM && (
+                              <span
+                                className="font-semibold leading-none"
+                                style={{
+                                  color: (showBonus && !showBase) ? 'rgba(255,255,255,0.6)' : '#888',
+                                  backgroundColor: (showBase || (!showBonus && !showBase)) ? '#555' : 'transparent',
+                                  fontSize: '7px',
+                                  borderRadius: (showBase || (!showBonus && !showBase)) ? '2px' : undefined,
+                                  padding: (showBase || (!showBonus && !showBase)) ? '0 2px' : undefined,
+                                }}
+                              >
+                                1PM
+                              </span>
+                            )}
+                            {!showBase && !showBonus && !has1PM && dayType === 'W' && (
+                              <span className="text-[10px] font-bold leading-none" style={{ color: '#ccc' }}>W</span>
+                            )}
                           </div>
                         </td>
                       )

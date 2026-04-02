@@ -84,7 +84,15 @@ export function exportMasterCalendar(
       const pm1 = claimedIds.filter((id) => is1PMId(id))
 
       let text = dayType
-      if (non1PM.length > 0) text = getPrefix(non1PM[0])
+      if (non1PM.length > 0) {
+        const bonusPrefix = getPrefix(non1PM[0])
+        // W is replaced by bonus; other base types show alongside
+        if (dayType && dayType !== 'W') {
+          text = `${dayType}\n${bonusPrefix}`
+        } else {
+          text = bonusPrefix
+        }
+      }
       if (pm1.length > 0) text = text ? `${text}\n1PM` : '1PM'
       row.push(text)
     }
