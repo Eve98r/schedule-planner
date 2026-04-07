@@ -101,6 +101,9 @@ export function useAuth() {
       provider: 'google',
       options: {
         redirectTo: window.location.origin + window.location.pathname,
+        queryParams: {
+          hd: 'hgrs.us',
+        },
       },
     })
     return { error }
