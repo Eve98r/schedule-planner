@@ -24,8 +24,17 @@ if (!tabKey) {
   window.sessionStorage.setItem('_sb_tab_key', tabKey)
 }
 
+// Remove stale Supabase session entries from localStorage that belong to
+// other tabs or previous deploys. Supabase JS v2 tries to refresh any
+// expired session it finds on startup, and if the network call hangs the
+// entire initialization locks up. We keep only this tab's own key.
+const myStorageKey = `sb-${tabKey}`
+Object.keys(localStorage)
+  .filter(k => k.startsWith('sb-') && !k.startsWith(myStorageKey))
+  .forEach(k => localStorage.removeItem(k))
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storageKey: `sb-${tabKey}`,
+    storageKey: myStorageKey,
   },
 })
