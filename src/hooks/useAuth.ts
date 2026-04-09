@@ -33,14 +33,24 @@ export function useAuth() {
   }, [])
 
   useEffect(() => {
+    // Hard timeout: if getSession() never resolves (Supabase JS v2 uses an
+    // internal lock that hangs when it tries to refresh an expired token over
+    // a slow or unreachable network), force loading=false so the login page
+    // always appears within 8 seconds.
+    const loadingTimeout = setTimeout(() => setLoading(false), 8000)
+
     supabase.auth.getSession()
       .then(async ({ data: { session: s } }) => {
+        clearTimeout(loadingTimeout)
         setSession(s)
         setUser(s?.user ?? null)
         if (s?.user) await fetchProfile(s.user.id, s.user.app_metadata?.provider)
         setLoading(false)
       })
-      .catch(() => setLoading(false))
+      .catch(() => {
+        clearTimeout(loadingTimeout)
+        setLoading(false)
+      })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, s) => {
